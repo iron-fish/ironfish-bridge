@@ -1,19 +1,21 @@
 -- CreateEnum
-CREATE TYPE "bridge_request_type" AS ENUM ('IRONFISH_TO_ETH', 'ETH_TO_IRONFISH');
+CREATE TYPE "chain_name" AS ENUM ('IRONFISH', 'ETHEREUM');
 
 -- CreateEnum
-CREATE TYPE "bridge_request_status" AS ENUM ('PENDING', 'CONFIRMED', 'FAILED');
+CREATE TYPE "bridge_request_status" AS ENUM ('CREATED', 'PENDING', 'CONFIRMED', 'FAILED');
 
 -- CreateTable
 CREATE TABLE "BridgeRequest" (
     "id" SERIAL NOT NULL,
+    "asset" VARCHAR NOT NULL,
     "source_address" VARCHAR NOT NULL,
     "destination_address" VARCHAR NOT NULL,
-    "asset" TEXT NOT NULL,
-    "source_transaction" TEXT NOT NULL,
-    "destination_transaction" TEXT,
-    "type" "bridge_request_type" NOT NULL,
+    "source_transaction" VARCHAR,
+    "destination_transaction" VARCHAR,
+    "source_chain" "chain_name" NOT NULL,
+    "destination_chain" "chain_name" NOT NULL,
     "status" "bridge_request_status" NOT NULL,
+    "failure_reason" TEXT,
 
     CONSTRAINT "BridgeRequest_pkey" PRIMARY KEY ("id")
 );

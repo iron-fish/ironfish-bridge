@@ -2,7 +2,7 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 
-import { BridgeRequestStatus, BridgeRequestType } from '@prisma/client';
+import { BridgeRequestStatus, Chain } from '@prisma/client';
 
 type Address = string;
 
@@ -12,8 +12,9 @@ export type BridgeDataDTO = {
   source_address: Address;
   destination_address: Address;
   asset: string;
-  type: BridgeRequestType;
-  source_transaction: string;
+  source_chain: Chain;
+  destination_chain: Chain;
+  source_transaction: string | null;
   destination_transaction: string | null;
   status: BridgeRequestStatus;
 };

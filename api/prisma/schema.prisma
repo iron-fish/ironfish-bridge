@@ -18,26 +18,29 @@ model SepoliaHead {
 
 model BridgeRequest {
   id                      Int                  @id @default(autoincrement())
-  asset                   String               
+  asset                   String               @db.VarChar
   source_address          String               @db.VarChar
   destination_address     String               @db.VarChar
-  source_transaction      String
-  destination_transaction String?
-  type                    BridgeRequestType
+  source_transaction      String?              @db.VarChar
+  destination_transaction String?              @db.VarChar
+  source_chain            Chain                
+  destination_chain       Chain                
   status                  BridgeRequestStatus
+  failure_reason          String?
 
   @@index([source_address], map: "index_bridge_request_on_source_address")
   @@index([destination_address], map: "index_bridge_request_on_destination_address")
 
 }
 
-enum BridgeRequestType {
-  IRONFISH_TO_ETH
-  ETH_TO_IRONFISH
-  @@map("bridge_request_type")
+enum Chain {
+  IRONFISH
+  ETHEREUM
+  @@map("chain_name")
 }
 
 enum BridgeRequestStatus {
+  CREATED
   PENDING
   CONFIRMED
   FAILED

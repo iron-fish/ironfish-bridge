@@ -10,7 +10,7 @@ import {
   it,
 } from '@jest/globals';
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { BridgeRequestStatus, BridgeRequestType } from '@prisma/client';
+import { BridgeRequestStatus, Chain } from '@prisma/client';
 import assert from 'assert';
 import request from 'supertest';
 import { ApiConfigService } from '../api-config/api-config.service';
@@ -55,7 +55,8 @@ describe('AssetsController', () => {
           destination_address: 'foooooooooooo',
           destination_transaction: null,
           status: 'PENDING',
-          type: BridgeRequestType.IRONFISH_TO_ETH,
+          source_chain: Chain.ETHEREUM,
+          destination_chain: Chain.IRONFISH,
         };
         const { body } = await request(app.getHttpServer())
           .post('/bridge/create')
@@ -84,7 +85,8 @@ describe('AssetsController', () => {
         const destination_address =
           '2222222222222222222222222222222222222222222222222222222222222222222222222222222222222';
         const status = BridgeRequestStatus.PENDING;
-        const type = BridgeRequestType.ETH_TO_IRONFISH;
+        const source_chain = Chain.ETHEREUM;
+        const destination_chain = Chain.IRONFISH;
         const source_transaction =
           '00000000000000021a63de16fea25d79f66f092862a8932746903e01ecbd6820';
         const asset =
@@ -92,7 +94,8 @@ describe('AssetsController', () => {
         const foo = await prisma.bridgeRequest.create({
           data: {
             source_address,
-            type,
+            source_chain,
+            destination_chain,
             status,
             asset,
             source_transaction,
@@ -108,7 +111,8 @@ describe('AssetsController', () => {
         expect(body).toMatchObject({
           [foo.id]: {
             source_address,
-            type,
+            source_chain,
+            destination_chain,
             status,
             asset,
             source_transaction,

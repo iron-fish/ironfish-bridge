@@ -55,8 +55,8 @@ export class BridgeController {
     { requests }: { requests: BridgeDataDTO[] },
   ): Promise<BridgeCreateDTO> {
     const response: BridgeCreateDTO = {};
-    const ethAddresses = await this.bridgeService.createRequests(requests);
-    for (const a of ethAddresses) {
+    const sourceAddresses = await this.bridgeService.createRequests(requests);
+    for (const a of sourceAddresses) {
       response[a.source_address] = a.id;
     }
     return response;
