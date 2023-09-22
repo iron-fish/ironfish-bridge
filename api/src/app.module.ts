@@ -11,13 +11,14 @@ import { ConfigModule } from '@nestjs/config';
 import joi from 'joi';
 import { ApiConfigModule } from './api-config/api-config.module';
 import { AuthModule } from './auth/auth.module';
+import { BridgeRestModule } from './bridge/bridge.rest.module';
 import { RequireSslMiddleware } from './common/middlewares/require-ssl.middleware';
 import { HealthRestModule } from './health/health.rest.module';
 import { LoggerModule } from './logger/logger.module';
 
 export const JOBS_MODULES = [];
 
-export const REST_MODULES = [HealthRestModule];
+export const REST_MODULES = [HealthRestModule, BridgeRestModule];
 
 @Module({
   imports: [
