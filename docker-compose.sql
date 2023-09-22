@@ -1,0 +1,2 @@
+CREATE DATABASE ironfish_bridge_api_development;
+CREATE DATABASE ironfish_bridge_api_test;
