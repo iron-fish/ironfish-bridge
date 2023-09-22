@@ -17,9 +17,7 @@ import { LoggerModule } from './logger/logger.module';
 
 export const JOBS_MODULES = [];
 
-export const REST_MODULES = [
-  HealthRestModule,
-];
+export const REST_MODULES = [HealthRestModule];
 
 @Module({
   imports: [

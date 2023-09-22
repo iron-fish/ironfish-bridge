@@ -3,17 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { HttpStatus, INestApplication } from '@nestjs/common';
 import request from 'supertest';
-import { ApiConfigService } from '../api-config/api-config.service';
 import { bootstrapTestApp } from '../test/test-app';
 
 describe('HealthController', () => {
   let app: INestApplication;
-  let API_KEY: string;
 
   beforeAll(async () => {
     app = await bootstrapTestApp();
-    const config = app.get(ApiConfigService);
-    API_KEY = config.get<string>('IRONFISH_BRIDGE_API_KEY');
     await app.init();
   });
 
