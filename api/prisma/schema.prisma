@@ -8,8 +8,9 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum TransactionStatus {
-  STARTED
+model SepoliaHead {
+  id   Int    @id
+  hash String @db.VarChar
 
-  @@map("transaction_status")
+  @@map("sepolia_head")
 }
