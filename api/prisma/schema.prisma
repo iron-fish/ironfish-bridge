@@ -7,3 +7,10 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model SepoliaHead {
+  id   Int    @id
+  hash String @db.VarChar
+
+  @@map("sepolia_head")
+}
