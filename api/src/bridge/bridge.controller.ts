@@ -10,19 +10,27 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
+import { BridgeRequestStatus } from '@prisma/client';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
+import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
+import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
+import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
 import { BridgeService } from './bridge.service';
 import {
   BridgeCreateDTO,
   BridgeDataDTO,
   BridgeRetrieveDTO,
+  BridgeSendDTO,
   HeadHash,
   OptionalHeadHash,
-} from './dto';
+} from './types/dto';
 
 @Controller('bridge')
 export class BridgeController {
-  constructor(private readonly bridgeService: BridgeService) {}
+  constructor(
+    private readonly bridgeService: BridgeService,
+    private readonly graphileWorkerService: GraphileWorkerService,
+  ) {}
 
   @UseGuards(ApiKeyGuard)
   @Get('retrieve')
@@ -39,6 +47,59 @@ export class BridgeController {
     const map: BridgeRetrieveDTO = {};
     for (const id of ids) {
       map[id] = requests.find((r) => r.id === id) ?? null;
+    }
+    return map;
+  }
+
+  @UseGuards(ApiKeyGuard)
+  @Post('send')
+  async send(
+    @Body(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { ids }: { ids: number[] },
+  ): Promise<BridgeSendDTO> {
+    const requests = await this.bridgeService.findByIds(ids);
+    const map: BridgeSendDTO = {};
+    for (const id of ids) {
+      const request = requests.find((r) => r.id === id) ?? null;
+      if (!request) {
+        map[id] = {
+          status: null,
+          failureReason: 'requested id not found in bridge service',
+        };
+        continue;
+      }
+      if (request.status !== BridgeRequestStatus.CREATED) {
+        map[id] = {
+          status: null,
+          failureReason: 'request status is not CREATED',
+        };
+        continue;
+      }
+      await this.graphileWorkerService.addJob<MintWIronOptions>(
+        GraphileWorkerPattern.MINT_WIRON,
+        {
+          bridgeRequest: id,
+          // TODO handle potential error here string -> bigint
+          amount: BigInt(request.amount),
+          destination: request.destination_address,
+        },
+      );
+      const updated = await this.bridgeService.updateRequest({
+        id: request.id,
+        status: BridgeRequestStatus.PENDING_PRETRANSFER,
+        source_transaction: request.source_transaction ?? undefined,
+      });
+      map[id] = updated
+        ? { status: updated.status }
+        : {
+            status: null,
+            failureReason: 'not found when attempting to update request',
+          };
     }
     return map;
   }
