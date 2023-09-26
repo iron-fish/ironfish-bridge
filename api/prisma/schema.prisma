@@ -8,20 +8,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model SepoliaHead {
-  id   Int    @id
-  hash String @db.VarChar
-
-  @@map("sepolia_head")
-}
-
-
 model BridgeRequest {
   id                      Int                  @id @default(autoincrement())
   asset                   String               @db.VarChar
   source_address          String               @db.VarChar
   destination_address     String               @db.VarChar
-  source_transaction      String?              @db.VarChar
+  source_transaction      String?              @db.VarChar @unique
   destination_transaction String?              @db.VarChar
   source_chain            Chain                
   destination_chain       Chain                
@@ -49,4 +41,12 @@ enum BridgeRequestStatus {
 
 model BridgeHead {
   hash      String   @db.VarChar @unique
+}
+
+model WIronSepoliaHead {
+  id   Int    @id
+  hash String @db.VarChar
+  height Int 
+
+  @@map("wiron_sepolia_head")
 }

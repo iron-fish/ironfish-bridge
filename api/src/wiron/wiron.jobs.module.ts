@@ -3,10 +3,18 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Module } from '@nestjs/common';
 import { ApiConfigModule } from '../api-config/api-config.module';
+import { BridgeModule } from '../bridge/bridge.module';
+import { GraphileWorkerModule } from '../graphile-worker/graphile-worker.module';
+import { WIronSepoliaHeadModule } from '../wiron-sepolia-head/wiron-sepolia-head.module';
 import { WIronJobsController } from './wiron.jobs.controller';
 
 @Module({
   controllers: [WIronJobsController],
-  imports: [ApiConfigModule],
+  imports: [
+    ApiConfigModule,
+    BridgeModule,
+    GraphileWorkerModule,
+    WIronSepoliaHeadModule,
+  ],
 })
 export class WIronJobsModule {}

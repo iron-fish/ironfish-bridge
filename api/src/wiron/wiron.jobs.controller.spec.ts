@@ -37,7 +37,7 @@ describe('MintWIronJobsController', () => {
 
       const options: MintWIronOptions = {
         destination: '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b',
-        amount: 42069n,
+        amount: BigInt(420e18),
       };
       await wIronJobsController.mint(options);
 
@@ -46,6 +46,12 @@ describe('MintWIronJobsController', () => {
         options.destination,
         options.amount,
       );
+    });
+  });
+
+  describe.only('refreshTransfers', () => {
+    it('polls for latest transfers', async () => {
+      await wIronJobsController.refreshTransfers();
     });
   });
 });

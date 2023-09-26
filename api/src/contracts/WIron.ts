@@ -45,6 +45,7 @@ export interface WIronInterface extends Interface {
       | "transfer"
       | "transferFrom"
       | "transferOwnership"
+      | "transferWithMetadata"
       | "unpause"
   ): FunctionFragment;
 
@@ -54,6 +55,7 @@ export interface WIronInterface extends Interface {
       | "OwnershipTransferred"
       | "Paused"
       | "Transfer"
+      | "TransferWithMetadata"
       | "Unpaused"
   ): EventFragment;
 
@@ -112,6 +114,10 @@ export interface WIronInterface extends Interface {
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "transferWithMetadata",
+    values: [AddressLike, BigNumberish, BytesLike]
+  ): string;
   encodeFunctionData(functionFragment: "unpause", values?: undefined): string;
 
   decodeFunctionResult(functionFragment: "allowance", data: BytesLike): Result;
@@ -149,6 +155,10 @@ export interface WIronInterface extends Interface {
   ): Result;
   decodeFunctionResult(
     functionFragment: "transferOwnership",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "transferWithMetadata",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "unpause", data: BytesLike): Result;
@@ -208,6 +218,31 @@ export namespace TransferEvent {
     from: string;
     to: string;
     value: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace TransferWithMetadataEvent {
+  export type InputTuple = [
+    from: AddressLike,
+    to: AddressLike,
+    value: BigNumberish,
+    metadata: BytesLike
+  ];
+  export type OutputTuple = [
+    from: string,
+    to: string,
+    value: bigint,
+    metadata: string
+  ];
+  export interface OutputObject {
+    from: string;
+    to: string;
+    value: bigint;
+    metadata: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -344,6 +379,12 @@ export interface WIron extends BaseContract {
     "nonpayable"
   >;
 
+  transferWithMetadata: TypedContractMethod<
+    [to: AddressLike, amount: BigNumberish, metadata: BytesLike],
+    [void],
+    "nonpayable"
+  >;
+
   unpause: TypedContractMethod<[], [void], "nonpayable">;
 
   getFunction<T extends ContractMethod = ContractMethod>(
@@ -440,6 +481,13 @@ export interface WIron extends BaseContract {
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "transferWithMetadata"
+  ): TypedContractMethod<
+    [to: AddressLike, amount: BigNumberish, metadata: BytesLike],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "unpause"
   ): TypedContractMethod<[], [void], "nonpayable">;
 
@@ -470,6 +518,13 @@ export interface WIron extends BaseContract {
     TransferEvent.InputTuple,
     TransferEvent.OutputTuple,
     TransferEvent.OutputObject
+  >;
+  getEvent(
+    key: "TransferWithMetadata"
+  ): TypedContractEvent<
+    TransferWithMetadataEvent.InputTuple,
+    TransferWithMetadataEvent.OutputTuple,
+    TransferWithMetadataEvent.OutputObject
   >;
   getEvent(
     key: "Unpaused"
@@ -522,6 +577,17 @@ export interface WIron extends BaseContract {
       TransferEvent.InputTuple,
       TransferEvent.OutputTuple,
       TransferEvent.OutputObject
+    >;
+
+    "TransferWithMetadata(address,address,uint256,bytes)": TypedContractEvent<
+      TransferWithMetadataEvent.InputTuple,
+      TransferWithMetadataEvent.OutputTuple,
+      TransferWithMetadataEvent.OutputObject
+    >;
+    TransferWithMetadata: TypedContractEvent<
+      TransferWithMetadataEvent.InputTuple,
+      TransferWithMetadataEvent.OutputTuple,
+      TransferWithMetadataEvent.OutputObject
     >;
 
     "Unpaused(address)": TypedContractEvent<

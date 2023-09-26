@@ -20,15 +20,31 @@ export class BridgeService {
     });
   }
 
-  async createRequests(requests: BridgeDataDTO[]): Promise<BridgeRequest[]> {
+  async upsertRequests(requests: BridgeDataDTO[]): Promise<BridgeRequest[]> {
     const results = [];
 
     for (const request of requests) {
-      const result = await this.prisma.bridgeRequest.create({
-        data: {
-          ...request,
-        },
-      });
+      let result;
+
+      if (!request.source_transaction) {
+        result = await this.prisma.bridgeRequest.create({
+          data: {
+            ...request,
+          },
+        });
+      } else {
+        result = await this.prisma.bridgeRequest.update({
+          data: {
+            source_transaction: request.source_transaction,
+            destination_transaction: request.destination_transaction,
+            status: request.status,
+          },
+          where: {
+            source_transaction: request.source_transaction,
+          },
+        });
+      }
+
       results.push(result);
     }
 
