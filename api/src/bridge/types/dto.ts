@@ -24,7 +24,12 @@ export type BridgeRetrieveDTO = {
   [keyof: AddressFk]: BridgeDataDTO | null;
 };
 
-export type BridgeSendDTO = {
+export type BridgeSendRequestDTO = {
+  id: AddressFk;
+  source_transaction: string;
+};
+
+export type BridgeSendResponseDTO = {
   [keyof: AddressFk]: {
     status: BridgeRequestStatus | null;
     failureReason?: string;

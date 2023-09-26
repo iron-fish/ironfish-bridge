@@ -20,7 +20,8 @@ import {
   BridgeCreateDTO,
   BridgeDataDTO,
   BridgeRetrieveDTO,
-  BridgeSendDTO,
+  BridgeSendRequestDTO,
+  BridgeSendResponseDTO,
   HeadHash,
   OptionalHeadHash,
 } from './types/dto';
@@ -60,21 +61,21 @@ export class BridgeController {
         transform: true,
       }),
     )
-    { ids }: { ids: number[] },
-  ): Promise<BridgeSendDTO> {
-    const requests = await this.bridgeService.findByIds(ids);
-    const map: BridgeSendDTO = {};
-    for (const id of ids) {
-      const request = requests.find((r) => r.id === id) ?? null;
+    { sends }: { sends: BridgeSendRequestDTO[] },
+  ): Promise<BridgeSendResponseDTO> {
+    const requests = await this.bridgeService.findByIds(sends.map((s) => s.id));
+    const map: BridgeSendResponseDTO = {};
+    for (const send of sends) {
+      const request = requests.find((r) => r.id === send.id) ?? null;
       if (!request) {
-        map[id] = {
+        map[send.id] = {
           status: null,
           failureReason: 'requested id not found in bridge service',
         };
         continue;
       }
       if (request.status !== BridgeRequestStatus.CREATED) {
-        map[id] = {
+        map[send.id] = {
           status: null,
           failureReason: 'request status is not CREATED',
         };
@@ -83,7 +84,7 @@ export class BridgeController {
       await this.graphileWorkerService.addJob<MintWIronOptions>(
         GraphileWorkerPattern.MINT_WIRON,
         {
-          bridgeRequest: id,
+          bridgeRequest: send.id,
           // TODO handle potential error here string -> bigint
           amount: BigInt(request.amount),
           destination: request.destination_address,
@@ -92,9 +93,9 @@ export class BridgeController {
       const updated = await this.bridgeService.updateRequest({
         id: request.id,
         status: BridgeRequestStatus.PENDING_PRETRANSFER,
-        source_transaction: request.source_transaction ?? undefined,
+        source_transaction: send.source_transaction ?? undefined,
       });
-      map[id] = updated
+      map[send.id] = updated
         ? { status: updated.status }
         : {
             status: null,

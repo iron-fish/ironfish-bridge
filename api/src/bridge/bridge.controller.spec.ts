@@ -128,55 +128,53 @@ describe('AssetsController', () => {
   });
 
   describe('GET /bridge/send', () => {
-    describe('when scanner detects send', () => {
-      it('updates the request and initiates transfer via smartcontact', async () => {
-        const data = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.createRequests([
-          { ...data, status: BridgeRequestStatus.CREATED },
-        ]);
-        const bridgeRequestCompleted = await bridgeService.createRequests([
-          { ...data, status: BridgeRequestStatus.CONFIRMED },
-        ]);
-        const nonExistentId = 1234567;
+    it('updates the request and initiates transfer via smartcontact', async () => {
+      const data = bridgeRequestDTO({});
+      const bridgeRequest = await bridgeService.createRequests([
+        { ...data, status: BridgeRequestStatus.CREATED },
+      ]);
+      const bridgeRequestCompleted = await bridgeService.createRequests([
+        { ...data, status: BridgeRequestStatus.CONFIRMED },
+      ]);
+      const nonExistentId = 1234567;
 
-        const addJobMock = jest
-          .spyOn(graphileWorkerService, 'addJob')
-          .mockImplementationOnce(jest.fn());
+      const addJobMock = jest
+        .spyOn(graphileWorkerService, 'addJob')
+        .mockImplementationOnce(jest.fn());
 
-        const response = await request(app.getHttpServer())
-          .post('/bridge/send')
-          .set('Authorization', `Bearer ${API_KEY}`)
-          .send({
-            ids: [
-              bridgeRequest[0].id,
-              bridgeRequestCompleted[0].id,
-              nonExistentId,
-            ],
-          })
-          .expect(HttpStatus.CREATED);
+      const response = await request(app.getHttpServer())
+        .post('/bridge/send')
+        .set('Authorization', `Bearer ${API_KEY}`)
+        .send({
+          sends: [
+            { id: bridgeRequest[0].id, source_transaction: '123123' },
+            { id: bridgeRequestCompleted[0].id, source_transaction: '11111' },
+            { id: nonExistentId, source_transaction: '1212121' },
+          ],
+        })
+        .expect(HttpStatus.CREATED);
 
-        expect(addJobMock).toHaveBeenCalledTimes(1);
-        const updatedRequest = await bridgeService.findByIds([
-          bridgeRequest[0].id,
-        ]);
+      expect(addJobMock).toHaveBeenCalledTimes(1);
+      const updatedRequest = await bridgeService.findByIds([
+        bridgeRequest[0].id,
+      ]);
 
-        expect(updatedRequest[0].status).toBe(
-          BridgeRequestStatus.PENDING_PRETRANSFER,
-        );
+      expect(updatedRequest[0].status).toBe(
+        BridgeRequestStatus.PENDING_PRETRANSFER,
+      );
 
-        expect(response.body).toMatchObject({
-          [bridgeRequest[0].id]: {
-            status: BridgeRequestStatus.PENDING_PRETRANSFER,
-          },
-          [bridgeRequestCompleted[0].id]: {
-            status: null,
-            failureReason: expect.any(String),
-          },
-          [nonExistentId]: {
-            status: null,
-            failureReason: expect.any(String),
-          },
-        });
+      expect(response.body).toMatchObject({
+        [bridgeRequest[0].id]: {
+          status: BridgeRequestStatus.PENDING_PRETRANSFER,
+        },
+        [bridgeRequestCompleted[0].id]: {
+          status: null,
+          failureReason: expect.any(String),
+        },
+        [nonExistentId]: {
+          status: null,
+          failureReason: expect.any(String),
+        },
       });
     });
   });
