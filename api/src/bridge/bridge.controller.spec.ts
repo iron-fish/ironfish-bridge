@@ -103,7 +103,7 @@ describe('AssetsController', () => {
           },
         });
         const { body } = await request(app.getHttpServer())
-          .get('/bridge/retrieve')
+          .post('/bridge/retrieve')
           .set('Authorization', `Bearer ${API_KEY}`)
           .send({ ids: [foo.id, unsavedId] })
           .expect(HttpStatus.OK);

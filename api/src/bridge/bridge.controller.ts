@@ -5,6 +5,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpStatus,
   Post,
   UseGuards,
@@ -25,7 +26,8 @@ export class BridgeController {
   constructor(private readonly bridgeService: BridgeService) {}
 
   @UseGuards(ApiKeyGuard)
-  @Get('retrieve')
+  @Post('retrieve')
+  @HttpCode(200)
   async retrieve(
     @Body(
       new ValidationPipe({
