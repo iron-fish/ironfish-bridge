@@ -27,10 +27,19 @@ model BridgeRequest {
   source_chain            Chain                
   destination_chain       Chain                
   status                  BridgeRequestStatus
-  failure_reason          String?
+  failure_reason          FailureReason?
+  failures                FailedBridgeRequest[]
 
   @@index([source_address], map: "index_bridge_request_on_source_address")
   @@index([destination_address], map: "index_bridge_request_on_destination_address")
+
+}
+
+model FailedBridgeRequest {
+  id                      Int                  @id @default(autoincrement())
+  bridge_request_id       Int?
+  bridge_request          BridgeRequest?        @relation(fields: [bridge_request_id], references: [id])
+  failure_reason          FailureReason
 
 }
 
@@ -51,4 +60,14 @@ enum BridgeRequestStatus {
 
 model BridgeHead {
   hash      String   @db.VarChar @unique
+}
+
+
+enum FailureReason {
+  REQUEST_NON_EXISTENT
+  REQUEST_INVALID_STATUS
+  REQUEST_SOURCE_ADDRESS_NOT_MATCHING
+  REQUEST_AMOUNT_NOT_MATCHING
+  REQUEST_ASSET_NOT_MATCHING
+  @@map("failure_reason")
 }

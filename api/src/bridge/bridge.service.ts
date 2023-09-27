@@ -2,7 +2,13 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Injectable } from '@nestjs/common';
-import { BridgeHead, BridgeRequest, BridgeRequestStatus } from '@prisma/client';
+import {
+  BridgeHead,
+  BridgeRequest,
+  BridgeRequestStatus,
+  FailedBridgeRequest,
+  FailureReason,
+} from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { BridgeDataDTO } from './types/dto';
 
@@ -58,5 +64,20 @@ export class BridgeService {
 
   async getHead(): Promise<BridgeHead | null> {
     return this.prisma.bridgeHead.findFirst();
+  }
+
+  async createFailedRequest(
+    request: BridgeRequest | null,
+    failure_reason: FailureReason,
+  ): Promise<FailedBridgeRequest> {
+    const bridge_request = request
+      ? { connect: { id: request.id } }
+      : undefined;
+    return this.prisma.failedBridgeRequest.create({
+      data: {
+        bridge_request,
+        failure_reason,
+      },
+    });
   }
 }

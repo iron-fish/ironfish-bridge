@@ -26,14 +26,19 @@ export type BridgeRetrieveDTO = {
 
 export type BridgeSendRequestDTO = {
   id: AddressFk;
+  amount: string;
+  asset: string;
+  source_address: Address;
   source_transaction: string;
 };
 
+export type BridgeSendItemDTO = {
+  status: BridgeRequestStatus | null;
+  failureReason: string | null;
+};
+
 export type BridgeSendResponseDTO = {
-  [keyof: AddressFk]: {
-    status: BridgeRequestStatus | null;
-    failureReason?: string;
-  };
+  [keyof: AddressFk]: BridgeSendItemDTO;
 };
 
 export type BridgeCreateDTO = { [keyof: Address]: AddressFk };
