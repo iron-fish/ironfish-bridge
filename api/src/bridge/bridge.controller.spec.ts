@@ -127,7 +127,7 @@ describe('AssetsController', () => {
     });
   });
 
-  describe('GET /bridge/send', () => {
+  describe('POST /bridge/send', () => {
     it('updates the request and initiates transfer via smartcontact', async () => {
       const data = bridgeRequestDTO({});
       const bridgeRequest = await bridgeService.createRequests([
