@@ -10,19 +10,30 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
+import { BridgeRequestStatus } from '@prisma/client';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
+import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
+import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
+import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
 import { BridgeService } from './bridge.service';
 import {
   BridgeCreateDTO,
   BridgeDataDTO,
   BridgeRetrieveDTO,
+  BridgeSendRequestDTO,
+  BridgeSendResponseDTO,
   HeadHash,
   OptionalHeadHash,
-} from './dto';
+} from './types/dto';
+import { ApiConfigService } from '../api-config/api-config.service';
 
 @Controller('bridge')
 export class BridgeController {
-  constructor(private readonly bridgeService: BridgeService) {}
+  constructor(
+    private readonly config: ApiConfigService,
+    private readonly bridgeService: BridgeService,
+    private readonly graphileWorkerService: GraphileWorkerService,
+  ) {}
 
   @UseGuards(ApiKeyGuard)
   @Get('retrieve')
@@ -39,6 +50,59 @@ export class BridgeController {
     const map: BridgeRetrieveDTO = {};
     for (const id of ids) {
       map[id] = requests.find((r) => r.id === id) ?? null;
+    }
+    return map;
+  }
+
+  @UseGuards(ApiKeyGuard)
+  @Post('send')
+  async send(
+    @Body(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { sends }: { sends: BridgeSendRequestDTO[] },
+  ): Promise<BridgeSendResponseDTO> {
+    const requests = await this.bridgeService.findByIds(sends.map((s) => s.id));
+    const map: BridgeSendResponseDTO = {};
+    for (const send of sends) {
+      const request = requests.find((r) => r.id === send.id) ?? null;
+      if (!request) {
+        map[send.id] = {
+          status: null,
+          failureReason: 'requested id not found in bridge service',
+        };
+        continue;
+      }
+      if (request.status !== BridgeRequestStatus.CREATED) {
+        map[send.id] = {
+          status: null,
+          failureReason: 'request status is not CREATED',
+        };
+        continue;
+      }
+      await this.graphileWorkerService.addJob<MintWIronOptions>(
+        GraphileWorkerPattern.MINT_WIRON,
+        {
+          bridgeRequest: send.id,
+          // TODO handle potential error here string -> bigint
+          amount: BigInt(request.amount),
+          destination: request.destination_address,
+        },
+      );
+      const updated = await this.bridgeService.updateRequest({
+        id: request.id,
+        status: BridgeRequestStatus.PENDING_PRETRANSFER,
+        source_transaction: send.source_transaction ?? undefined,
+      });
+      map[send.id] = updated
+        ? { status: updated.status }
+        : {
+            status: null,
+            failureReason: 'not found when attempting to update request',
+          };
     }
     return map;
   }
@@ -83,5 +147,11 @@ export class BridgeController {
     const ethBridgeHead = await this.bridgeService.getHead();
     const head = ethBridgeHead ? ethBridgeHead.hash : null;
     return { hash: head };
+  }
+
+  @Get('address')
+  async getAddress(): Promise<{ address: string }> {
+    const address = this.config.get<string>('IRONFISH_BRIDGE_ADDRESS');
+    return { address };
   }
 }

@@ -10,6 +10,7 @@ datasource db {
 
 model BridgeRequest {
   id                      Int                  @id @default(autoincrement())
+  amount                  String               @db.VarChar
   asset                   String               @db.VarChar
   source_address          String               @db.VarChar
   destination_address     String               @db.VarChar
@@ -33,7 +34,8 @@ enum Chain {
 
 enum BridgeRequestStatus {
   CREATED
-  PENDING
+  PENDING_PRETRANSFER
+  PENDING_ON_DESTINATION_CHAIN
   CONFIRMED
   FAILED
   @@map("bridge_request_status")

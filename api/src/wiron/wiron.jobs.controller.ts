@@ -34,7 +34,12 @@ export class WIronJobsController {
     const wallet = new ethers.Wallet(wIronDeployerPrivateKey, provider);
     const contract = WIron__factory.connect(WIRON_CONTRACT_ADDRESS, wallet);
 
-    await contract.mint(options.destination, options.amount);
+    const result = await contract.mint(options.destination, options.amount);
+    await this.bridgeService.updateRequest({
+      id: options.bridgeRequest,
+      status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+      destination_transaction: result.hash,
+    });
   }
 
   @MessagePattern(GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS)
