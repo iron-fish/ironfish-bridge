@@ -25,10 +25,12 @@ import {
   HeadHash,
   OptionalHeadHash,
 } from './types/dto';
+import { ApiConfigService } from '../api-config/api-config.service';
 
 @Controller('bridge')
 export class BridgeController {
   constructor(
+    private readonly config: ApiConfigService,
     private readonly bridgeService: BridgeService,
     private readonly graphileWorkerService: GraphileWorkerService,
   ) {}
@@ -145,5 +147,11 @@ export class BridgeController {
     const ethBridgeHead = await this.bridgeService.getHead();
     const head = ethBridgeHead ? ethBridgeHead.hash : null;
     return { hash: head };
+  }
+
+  @Get('address')
+  async getAddress(): Promise<{ address: string }> {
+    const address = this.config.get<string>('IRONFISH_BRIDGE_ADDRESS');
+    return { address };
   }
 }

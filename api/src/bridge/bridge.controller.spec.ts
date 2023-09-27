@@ -27,6 +27,7 @@ describe('AssetsController', () => {
   let bridgeService: BridgeService;
   let graphileWorkerService: GraphileWorkerService;
   let API_KEY: string;
+  let IRONFISH_BRIDGE_ADDRESS: string;
 
   beforeAll(async () => {
     app = await bootstrapTestApp();
@@ -36,6 +37,7 @@ describe('AssetsController', () => {
     graphileWorkerService = app.get(GraphileWorkerService);
 
     API_KEY = config.get<string>('IRONFISH_BRIDGE_API_KEY');
+    IRONFISH_BRIDGE_ADDRESS = config.get<string>('IRONFISH_BRIDGE_ADDRESS');
 
     await app.init();
   });
@@ -178,4 +180,14 @@ describe('AssetsController', () => {
       });
     });
   });
+
+  describe('GET /bridge/address', () => {
+    it('returns the configured public Ironf Fish address of the bridge', async () => {
+      const { body } = await request(app.getHttpServer())
+        .get('/bridge/address')
+        .expect(HttpStatus.OK)
+      
+      expect(body.address).toEqual(IRONFISH_BRIDGE_ADDRESS)
+    })
+  })
 });
