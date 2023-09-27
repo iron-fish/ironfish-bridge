@@ -9,6 +9,7 @@ type Address = string;
 type AddressFk = number;
 
 export type BridgeDataDTO = {
+  amount: string;
   source_address: Address;
   destination_address: Address;
   asset: string;
@@ -21,6 +22,18 @@ export type BridgeDataDTO = {
 
 export type BridgeRetrieveDTO = {
   [keyof: AddressFk]: BridgeDataDTO | null;
+};
+
+export type BridgeSendRequestDTO = {
+  id: AddressFk;
+  source_transaction: string;
+};
+
+export type BridgeSendResponseDTO = {
+  [keyof: AddressFk]: {
+    status: BridgeRequestStatus | null;
+    failureReason?: string;
+  };
 };
 
 export type BridgeCreateDTO = { [keyof: Address]: AddressFk };
