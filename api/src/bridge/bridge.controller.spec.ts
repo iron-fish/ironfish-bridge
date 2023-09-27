@@ -182,7 +182,7 @@ describe('AssetsController', () => {
   });
 
   describe('GET /bridge/address', () => {
-    it('returns the configured public Ironf Fish address of the bridge', async () => {
+    it('returns the configured public Iron Fish address of the bridge', async () => {
       const { body } = await request(app.getHttpServer())
         .get('/bridge/address')
         .expect(HttpStatus.OK)
