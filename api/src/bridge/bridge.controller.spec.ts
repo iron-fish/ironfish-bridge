@@ -10,24 +10,30 @@ import {
   it,
 } from '@jest/globals';
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { BridgeRequestStatus, Chain } from '@prisma/client';
+import { BridgeRequestStatus } from '@prisma/client';
 import assert from 'assert';
 import request from 'supertest';
 import { ApiConfigService } from '../api-config/api-config.service';
+import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { bridgeRequestDTO } from '../test/mocks';
 import { bootstrapTestApp } from '../test/test-app';
-import { BridgeDataDTO } from './dto';
+import { BridgeService } from './bridge.service';
 
 describe('AssetsController', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let config: ApiConfigService;
+  let bridgeService: BridgeService;
+  let graphileWorkerService: GraphileWorkerService;
   let API_KEY: string;
 
   beforeAll(async () => {
     app = await bootstrapTestApp();
     prisma = app.get(PrismaService);
     config = app.get(ApiConfigService);
+    bridgeService = app.get(BridgeService);
+    graphileWorkerService = app.get(GraphileWorkerService);
 
     API_KEY = config.get<string>('IRONFISH_BRIDGE_API_KEY');
 
@@ -46,18 +52,7 @@ describe('AssetsController', () => {
     describe('when data is posted to endpoint', () => {
       it('is successful creates record and returns fk', async () => {
         const source_address = '11111111111111111111111111';
-        const data: BridgeDataDTO = {
-          source_address,
-          asset:
-            '51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c',
-          source_transaction:
-            '00000000000000021a63de16fea25d79f66f092862a893274690000000000000',
-          destination_address: 'foooooooooooo',
-          destination_transaction: null,
-          status: 'PENDING',
-          source_chain: Chain.ETHEREUM,
-          destination_chain: Chain.IRONFISH,
-        };
+        const data = bridgeRequestDTO({ source_address });
         const { body } = await request(app.getHttpServer())
           .post('/bridge/create')
           .set('Authorization', `Bearer ${API_KEY}`)
@@ -80,27 +75,9 @@ describe('AssetsController', () => {
     describe('when data is requested by id', () => {
       it('is successfully returns if fk is in db, null if not', async () => {
         const unsavedId = 1234567;
-        const source_address =
-          '2222222222222222222222222222222222222222222222222222222222222222222222222222222222222';
-        const destination_address =
-          '2222222222222222222222222222222222222222222222222222222222222222222222222222222222222';
-        const status = BridgeRequestStatus.PENDING;
-        const source_chain = Chain.ETHEREUM;
-        const destination_chain = Chain.IRONFISH;
-        const source_transaction =
-          '00000000000000021a63de16fea25d79f66f092862a8932746903e01ecbd6820';
-        const asset =
-          '51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c';
+        const requestData = bridgeRequestDTO({});
         const foo = await prisma.bridgeRequest.create({
-          data: {
-            source_address,
-            source_chain,
-            destination_chain,
-            status,
-            asset,
-            source_transaction,
-            destination_address,
-          },
+          data: requestData,
         });
         const { body } = await request(app.getHttpServer())
           .get('/bridge/retrieve')
@@ -110,13 +87,7 @@ describe('AssetsController', () => {
 
         expect(body).toMatchObject({
           [foo.id]: {
-            source_address,
-            source_chain,
-            destination_chain,
-            status,
-            asset,
-            source_transaction,
-            destination_address,
+            ...requestData,
           },
           [unsavedId]: null,
         });
@@ -152,6 +123,58 @@ describe('AssetsController', () => {
           .expect(HttpStatus.OK);
 
         expect(getBody.hash).toBe('fakehash2');
+      });
+    });
+  });
+
+  describe('POST /bridge/send', () => {
+    it('updates the request and initiates transfer via smartcontact', async () => {
+      const data = bridgeRequestDTO({});
+      const bridgeRequest = await bridgeService.createRequests([
+        { ...data, status: BridgeRequestStatus.CREATED },
+      ]);
+      const bridgeRequestCompleted = await bridgeService.createRequests([
+        { ...data, status: BridgeRequestStatus.CONFIRMED },
+      ]);
+      const nonExistentId = 1234567;
+
+      const addJobMock = jest
+        .spyOn(graphileWorkerService, 'addJob')
+        .mockImplementationOnce(jest.fn());
+
+      const response = await request(app.getHttpServer())
+        .post('/bridge/send')
+        .set('Authorization', `Bearer ${API_KEY}`)
+        .send({
+          sends: [
+            { id: bridgeRequest[0].id, source_transaction: '123123' },
+            { id: bridgeRequestCompleted[0].id, source_transaction: '11111' },
+            { id: nonExistentId, source_transaction: '1212121' },
+          ],
+        })
+        .expect(HttpStatus.CREATED);
+
+      expect(addJobMock).toHaveBeenCalledTimes(1);
+      const updatedRequest = await bridgeService.findByIds([
+        bridgeRequest[0].id,
+      ]);
+
+      expect(updatedRequest[0].status).toBe(
+        BridgeRequestStatus.PENDING_PRETRANSFER,
+      );
+
+      expect(response.body).toMatchObject({
+        [bridgeRequest[0].id]: {
+          status: BridgeRequestStatus.PENDING_PRETRANSFER,
+        },
+        [bridgeRequestCompleted[0].id]: {
+          status: null,
+          failureReason: expect.any(String),
+        },
+        [nonExistentId]: {
+          status: null,
+          failureReason: expect.any(String),
+        },
       });
     });
   });
