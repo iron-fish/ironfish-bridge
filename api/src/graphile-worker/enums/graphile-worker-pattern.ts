@@ -3,4 +3,5 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export enum GraphileWorkerPattern {
   MINT_WIRON = 'MINT_WIRON',
+  REFRESH_WIRON_TRANSFERS = 'REFRESH_WIRON_TRANSFERS',
 }

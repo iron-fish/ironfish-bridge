@@ -2,25 +2,34 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { INestApplication } from '@nestjs/common';
-import { BridgeRequestStatus } from '@prisma/client';
-import { ContractTransactionResponse } from 'ethers';
+import { BridgeRequestStatus, Chain } from '@prisma/client';
+import { Block, ContractTransactionResponse, ethers } from 'ethers';
 import { mock } from 'jest-mock-extended';
 import { BridgeService } from '../bridge/bridge.service';
 import { WIron, WIron__factory } from '../contracts';
+import { TypedContractEvent, TypedEventLog } from '../contracts/common';
+import { TransferWithMetadataEvent } from '../contracts/WIron';
+import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
+import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { bridgeRequestDTO } from '../test/mocks';
 import { bootstrapTestApp } from '../test/test-app';
+import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-head.service';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
 import { WIronJobsController } from './wiron.jobs.controller';
 
 describe('MintWIronJobsController', () => {
   let app: INestApplication;
-  let wIronJobsController: WIronJobsController;
   let bridgeService: BridgeService;
+  let graphileWorkerService: GraphileWorkerService;
+  let wIronJobsController: WIronJobsController;
+  let wIronSepoliaHeadService: WIronSepoliaHeadService;
 
   beforeAll(async () => {
     app = await bootstrapTestApp();
-    wIronJobsController = app.get(WIronJobsController);
     bridgeService = app.get(BridgeService);
+    graphileWorkerService = app.get(GraphileWorkerService);
+    wIronJobsController = app.get(WIronJobsController);
+    wIronSepoliaHeadService = app.get(WIronSepoliaHeadService);
     await app.init();
   });
 
@@ -38,7 +47,7 @@ describe('MintWIronJobsController', () => {
 
       const amount = '100';
       const destination_address = '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
-      const request = await bridgeService.createRequests([
+      const request = await bridgeService.upsertRequests([
         bridgeRequestDTO({ amount, destination_address }),
       ]);
       jest.spyOn(WIron__factory, 'connect').mockImplementation(() => wIronMock);
@@ -67,6 +76,112 @@ describe('MintWIronJobsController', () => {
         BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
       );
       expect(updatedRequest[0].destination_transaction).toBeTruthy();
+    });
+  });
+
+  describe('refreshTransfers', () => {
+    it('updates latest head and saves bridge requests', async () => {
+      const upsertRequests = jest.spyOn(bridgeService, 'upsertRequests');
+      const updateHead = jest.spyOn(wIronSepoliaHeadService, 'updateHead');
+      const addJob = jest
+        .spyOn(graphileWorkerService, 'addJob')
+        .mockImplementationOnce(jest.fn());
+
+      const wIronMock = mock<WIron>({
+        filters: {
+          'TransferWithMetadata(address,address,uint256,bytes)':
+            mock<
+              TypedContractEvent<
+                TransferWithMetadataEvent.InputTuple,
+                TransferWithMetadataEvent.OutputTuple,
+                TransferWithMetadataEvent.OutputObject
+              >
+            >(),
+        },
+      });
+      const wIronProviderMock = mock<ethers.InfuraProvider>();
+      jest
+        .spyOn(wIronJobsController, 'connectWIron')
+        .mockImplementation(() => ({
+          contract: wIronMock,
+          provider: wIronProviderMock,
+        }));
+
+      const mockHead: Block = {
+        number: 4376800,
+      } as Block;
+      jest
+        .spyOn(wIronProviderMock, 'getBlock')
+        .mockImplementationOnce(() => Promise.resolve(mockHead));
+
+      const mockToBlock: Block = {
+        number: 4376798,
+        hash: '0x8f1ca717fb6ebff1ff2835f02349b5b06741d3d38a2df7da28a33d6bf0990230',
+      } as Block;
+      jest
+        .spyOn(wIronProviderMock, 'getBlock')
+        .mockImplementationOnce(() => Promise.resolve(mockToBlock));
+
+      const mockEvents = [
+        {
+          args: [
+            '0xfromaddress',
+            '0xtoaddress',
+            420n,
+            'destinationironfishaddress',
+          ],
+          transactionHash: '0xfoobar',
+        },
+        {
+          args: [
+            '0xfromaddress',
+            '0xtoaddress',
+            69n,
+            'destinationironfishaddress',
+          ],
+          transactionHash: '0xbarbaz',
+        },
+      ] as TypedEventLog<
+        TypedContractEvent<
+          TransferWithMetadataEvent.InputTuple,
+          TransferWithMetadataEvent.OutputTuple,
+          TransferWithMetadataEvent.OutputObject
+        >
+      >[];
+      jest
+        .spyOn(wIronMock, 'queryFilter')
+        .mockImplementationOnce(() => Promise.resolve(mockEvents));
+
+      await wIronJobsController.refreshTransfers();
+
+      const bridgeRequests = mockEvents.map((event) => {
+        let destinationAddress = event.args[3];
+        if (destinationAddress.startsWith('0x')) {
+          destinationAddress = destinationAddress.slice(2);
+        }
+
+        return {
+          source_address: event.args[0],
+          destination_address: destinationAddress,
+          amount: event.args[2].toString(),
+          asset: 'WIRON',
+          source_chain: Chain.ETHEREUM,
+          destination_chain: Chain.IRONFISH,
+          source_transaction: event.transactionHash,
+          destination_transaction: null,
+          status: BridgeRequestStatus.CREATED,
+        };
+      });
+
+      expect(upsertRequests.mock.calls[0][0]).toEqual(bridgeRequests);
+      expect(updateHead.mock.calls[0][0]).toEqual(mockToBlock.hash);
+      expect(updateHead.mock.calls[0][1]).toEqual(mockToBlock.number);
+
+      expect(addJob).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+      expect(addJob.mock.calls[0][0]).toBe(
+        GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS,
+      );
     });
   });
 });

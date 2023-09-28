@@ -4,10 +4,21 @@
 import { Module } from '@nestjs/common';
 import { ApiConfigModule } from '../api-config/api-config.module';
 import { BridgeModule } from '../bridge/bridge.module';
+import { GraphileWorkerModule } from '../graphile-worker/graphile-worker.module';
+import { LoggerModule } from '../logger/logger.module';
+import { PrismaModule } from '../prisma/prisma.module';
+import { WIronSepoliaHeadModule } from '../wiron-sepolia-head/wiron-sepolia-head.module';
 import { WIronJobsController } from './wiron.jobs.controller';
 
 @Module({
   controllers: [WIronJobsController],
-  imports: [ApiConfigModule, BridgeModule],
+  imports: [
+    ApiConfigModule,
+    BridgeModule,
+    GraphileWorkerModule,
+    LoggerModule,
+    PrismaModule,
+    WIronSepoliaHeadModule,
+  ],
 })
 export class WIronJobsModule {}

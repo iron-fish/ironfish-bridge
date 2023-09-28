@@ -167,7 +167,7 @@ describe('AssetsController', () => {
         const dto = bridgeRequestDTO({
           status: BridgeRequestStatus.PENDING_PRETRANSFER,
         });
-        const bridgeRequest = await bridgeService.createRequests([dto]);
+        const bridgeRequest = await bridgeService.upsertRequests([dto]);
         const send: BridgeSendRequestDTO = {
           ...dto,
           source_transaction: dto.source_transaction || '123123',
@@ -179,7 +179,7 @@ describe('AssetsController', () => {
 
       it('non matching source address fails', async () => {
         const dto = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.createRequests([dto]);
+        const bridgeRequest = await bridgeService.upsertRequests([dto]);
         const send: BridgeSendRequestDTO = {
           ...dto,
           source_transaction: dto.source_transaction || '123123',
@@ -195,7 +195,7 @@ describe('AssetsController', () => {
 
       it('asset id does not match created entry', async () => {
         const dto = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.createRequests([dto]);
+        const bridgeRequest = await bridgeService.upsertRequests([dto]);
         const send: BridgeSendRequestDTO = {
           ...dto,
           source_transaction: dto.source_transaction || '123123',
@@ -211,7 +211,7 @@ describe('AssetsController', () => {
 
       it('amount does not match created entry', async () => {
         const dto = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.createRequests([dto]);
+        const bridgeRequest = await bridgeService.upsertRequests([dto]);
         const send: BridgeSendRequestDTO = {
           ...dto,
           source_transaction: dto.source_transaction || '123123',
@@ -229,7 +229,7 @@ describe('AssetsController', () => {
     describe('success case', () => {
       it('updates the request and initiates transfer via smartcontact', async () => {
         const dto = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.createRequests([
+        const bridgeRequest = await bridgeService.upsertRequests([
           { ...dto, status: BridgeRequestStatus.CREATED },
         ]);
 
