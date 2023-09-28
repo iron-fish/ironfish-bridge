@@ -101,7 +101,7 @@ export class WIronJobsController {
 
         return {
           source_address: event.args[0],
-          destination_address: event.args[3],
+          destination_address: destinationAddress,
           amount: event.args[2].toString(),
           asset: 'WIRON',
           source_chain: Chain.ETHEREUM,
