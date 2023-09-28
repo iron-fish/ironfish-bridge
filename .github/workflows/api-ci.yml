@@ -1,0 +1,94 @@
+name: API CI
+
+on:
+  pull_request:
+    branches:
+      - '*'
+  push:
+    branches:
+      - master
+
+env:
+  DATABASE_CONNECTION_POOL_URL: postgres://postgres:password@localhost:5432/ironfish_bridge_api_development
+  DATABASE_URL: postgres://postgres:password@localhost:5432/ironfish_bridge_api_development
+  GRAPHILE_CONCURRENCY: 10
+  IRONFISH_BRIDGE_ADDRESS: test
+  IRONFISH_BRIDGE_API_KEY: test
+  NODE_ENV: development
+  REFRESH_WIRON_TRANSFERS_PERIOD_MINUTES: 2
+  # random key below, added to make tests pass
+  WIRON_DEPLOYER_PRIVATE_KEY: 9ea04ca7f029239cadd3058a34e4c0d1481bfad231ff37fa06f05eaf8a2f9533
+  WIRON_DEPOSIT_ADDRESS: test
+  WIRON_FINALITY_HEIGHT_RANGE: 10
+  WIRON_QUERY_HEIGHT_RANGE: 100
+  IRONFISH_POSTGRES_CONTAINER: ironfish_bridge_postgres
+
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.13.0'
+      - name: Restore Yarn cache
+        id: yarn-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - name: Install packages
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: yarn --non-interactive --frozen-lockfile
+      - name: Generate Prisma schema
+        run: npx prisma generate
+      - name: Lint
+        run: yarn lint
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./api
+    steps:
+      - name: Check out Git repository
+        uses: actions/checkout@v2
+      - name: Use Node.js
+        uses: actions/setup-node@v2
+        with:
+          node-version: '18.13.0'
+      - name: Restore Yarn cache
+        id: yarn-cache
+        uses: actions/cache@v2
+        with:
+          path: |
+            node_modules
+            */*/node_modules
+          key: ${{ runner.os }}-${{ hashFiles('**/yarn.lock') }}
+      - name: Install packages
+        if: steps.yarn-cache.outputs.cache-hit != 'true'
+        run: yarn --non-interactive --frozen-lockfile
+      - name: Generate Prisma schema
+        run: npx prisma generate
+      - name: Start Docker 
+        run: yarn docker:start
+      - name: Wait for Postgres
+        run: until docker exec $IRONFISH_POSTGRES_CONTAINER pg_isready; do sleep 5; done
+      - name: Run migrations
+        run: npx prisma migrate deploy
+      - name: Run tests
+        run: yarn test
+        env:
+          NODE_OPTIONS: --max_old_space_size=8192
+      - name: Stop Docker
+        run: yarn docker:stop
