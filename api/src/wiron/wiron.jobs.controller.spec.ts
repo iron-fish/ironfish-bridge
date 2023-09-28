@@ -99,14 +99,19 @@ describe('MintWIronJobsController', () => {
             >(),
         },
       });
-      jest.spyOn(WIron__factory, 'connect').mockImplementation(() => wIronMock);
+      const wIronProviderMock = mock<ethers.InfuraProvider>();
+      jest
+        .spyOn(wIronJobsController, 'connectWIron')
+        .mockImplementation(() => ({
+          contract: wIronMock,
+          provider: wIronProviderMock,
+        }));
 
       const mockHead: Block = {
         number: 4376800,
       } as Block;
-      const wIronProvider = mock<ethers.InfuraProvider>();
       jest
-        .spyOn(wIronProvider, 'getBlock')
+        .spyOn(wIronProviderMock, 'getBlock')
         .mockImplementationOnce(() => Promise.resolve(mockHead));
 
       const mockToBlock: Block = {
@@ -114,7 +119,7 @@ describe('MintWIronJobsController', () => {
         hash: '0x8f1ca717fb6ebff1ff2835f02349b5b06741d3d38a2df7da28a33d6bf0990230',
       } as Block;
       jest
-        .spyOn(wIronProvider, 'getBlock')
+        .spyOn(wIronProviderMock, 'getBlock')
         .mockImplementationOnce(() => Promise.resolve(mockToBlock));
 
       const mockEvents = [
@@ -167,11 +172,10 @@ describe('MintWIronJobsController', () => {
           status: BridgeRequestStatus.CREATED,
         };
       });
-      expect(upsertRequests).toHaveBeenCalledWith(bridgeRequests);
-      expect(updateHead).toHaveBeenCalledWith(
-        mockToBlock.hash,
-        mockToBlock.number,
-      );
+
+      expect(upsertRequests.mock.calls[0][0]).toEqual(bridgeRequests);
+      expect(updateHead.mock.calls[0][0]).toEqual(mockToBlock.hash);
+      expect(updateHead.mock.calls[0][1]).toEqual(mockToBlock.number);
 
       expect(addJob).toHaveBeenCalledTimes(1);
       // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access

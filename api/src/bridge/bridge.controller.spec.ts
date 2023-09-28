@@ -133,10 +133,18 @@ describe('AssetsController', () => {
     it('updates the request and initiates transfer via smartcontact', async () => {
       const data = bridgeRequestDTO({});
       const bridgeRequest = await bridgeService.upsertRequests([
-        { ...data, status: BridgeRequestStatus.CREATED },
+        {
+          ...data,
+          source_transaction: '123123',
+          status: BridgeRequestStatus.CREATED,
+        },
       ]);
       const bridgeRequestCompleted = await bridgeService.upsertRequests([
-        { ...data, status: BridgeRequestStatus.CONFIRMED },
+        {
+          ...data,
+          source_transaction: '11111',
+          status: BridgeRequestStatus.CONFIRMED,
+        },
       ]);
       const nonExistentId = 1234567;
 
@@ -149,8 +157,14 @@ describe('AssetsController', () => {
         .set('Authorization', `Bearer ${API_KEY}`)
         .send({
           sends: [
-            { id: bridgeRequest[0].id, source_transaction: '123123' },
-            { id: bridgeRequestCompleted[0].id, source_transaction: '11111' },
+            {
+              id: bridgeRequest[0].id,
+              source_transaction: bridgeRequest[0].source_transaction,
+            },
+            {
+              id: bridgeRequestCompleted[0].id,
+              source_transaction: bridgeRequestCompleted[0].source_transaction,
+            },
             { id: nonExistentId, source_transaction: '1212121' },
           ],
         })

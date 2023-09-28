@@ -8,7 +8,7 @@ import { ethers } from 'ethers';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { BridgeService } from '../bridge/bridge.service';
 import { WIRON_CONTRACT_ADDRESS } from '../common/constants';
-import { WIron__factory } from '../contracts';
+import { WIron, WIron__factory } from '../contracts';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { GraphileWorkerException } from '../graphile-worker/graphile-worker-exception';
@@ -31,12 +31,7 @@ export class WIronJobsController {
   @MessagePattern(GraphileWorkerPattern.MINT_WIRON)
   @UseFilters(new GraphileWorkerException())
   async mint(options: MintWIronOptions) {
-    const wIronDeployerPrivateKey = this.config.get<string>(
-      'WIRON_DEPLOYER_PRIVATE_KEY',
-    );
-    const provider = new ethers.InfuraProvider('sepolia');
-    const wallet = new ethers.Wallet(wIronDeployerPrivateKey, provider);
-    const contract = WIron__factory.connect(WIRON_CONTRACT_ADDRESS, wallet);
+    const { contract } = this.connectWIron();
 
     const result = await contract.mint(options.destination, options.amount);
     await this.bridgeService.updateRequest({
@@ -49,13 +44,7 @@ export class WIronJobsController {
   @MessagePattern(GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS)
   @UseFilters(new GraphileWorkerException())
   async refreshTransfers() {
-    const wIronDeployerPrivateKey = this.config.get<string>(
-      'WIRON_DEPLOYER_PRIVATE_KEY',
-    );
-    const provider = new ethers.InfuraProvider('sepolia');
-    const wallet = new ethers.Wallet(wIronDeployerPrivateKey, provider);
-    const contract = WIron__factory.connect(WIRON_CONTRACT_ADDRESS, wallet);
-
+    const { provider, contract } = this.connectWIron();
     const head = await provider.getBlock('latest');
     if (!head) {
       throw new Error('Null head');
@@ -136,5 +125,18 @@ export class WIronJobsController {
     );
 
     return { requeue: false };
+  }
+
+  connectWIron(): {
+    provider: ethers.InfuraProvider;
+    contract: WIron;
+  } {
+    const wIronDeployerPrivateKey = this.config.get<string>(
+      'WIRON_DEPLOYER_PRIVATE_KEY',
+    );
+    const provider = new ethers.InfuraProvider('sepolia');
+    const wallet = new ethers.Wallet(wIronDeployerPrivateKey, provider);
+    const contract = WIron__factory.connect(WIRON_CONTRACT_ADDRESS, wallet);
+    return { provider, contract };
   }
 }
