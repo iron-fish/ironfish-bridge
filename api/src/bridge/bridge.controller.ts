@@ -10,7 +10,12 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { BridgeRequestStatus } from '@prisma/client';
+import {
+  BridgeRequest,
+  BridgeRequestStatus,
+  FailureReason,
+} from '@prisma/client';
+import assert from 'assert';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
@@ -66,23 +71,23 @@ export class BridgeController {
     { sends }: { sends: BridgeSendRequestDTO[] },
   ): Promise<BridgeSendResponseDTO> {
     const requests = await this.bridgeService.findByIds(sends.map((s) => s.id));
-    const map: BridgeSendResponseDTO = {};
+    const response: BridgeSendResponseDTO = {};
     for (const send of sends) {
       const request = requests.find((r) => r.id === send.id) ?? null;
-      if (!request) {
-        map[send.id] = {
-          status: null,
-          failureReason: 'requested id not found in bridge service',
+
+      const failureReason = this.validateSend(request, send);
+
+      if (failureReason) {
+        response[send.id] = {
+          status: BridgeRequestStatus.FAILED,
+          failureReason,
         };
+        await this.bridgeService.createFailedRequest(request, failureReason);
         continue;
       }
-      if (request.status !== BridgeRequestStatus.CREATED) {
-        map[send.id] = {
-          status: null,
-          failureReason: 'request status is not CREATED',
-        };
-        continue;
-      }
+
+      assert.ok(request);
+
       await this.graphileWorkerService.addJob<MintWIronOptions>(
         GraphileWorkerPattern.MINT_WIRON,
         {
@@ -92,19 +97,20 @@ export class BridgeController {
           destination: request.destination_address,
         },
       );
-      const updated = await this.bridgeService.updateRequest({
+
+      const status = BridgeRequestStatus.PENDING_PRETRANSFER;
+      await this.bridgeService.updateRequest({
         id: request.id,
-        status: BridgeRequestStatus.PENDING_PRETRANSFER,
+        status,
         source_transaction: send.source_transaction ?? undefined,
       });
-      map[send.id] = updated
-        ? { status: updated.status }
-        : {
-            status: null,
-            failureReason: 'not found when attempting to update request',
-          };
+
+      response[send.id] = {
+        status,
+        failureReason: null,
+      };
     }
-    return map;
+    return response;
   }
 
   @UseGuards(ApiKeyGuard)
@@ -153,5 +159,27 @@ export class BridgeController {
   getAddress(): { address: string } {
     const address = this.config.get<string>('IRONFISH_BRIDGE_ADDRESS');
     return { address };
+  }
+
+  validateSend(
+    request: BridgeRequest | null,
+    send: BridgeSendRequestDTO,
+  ): FailureReason | null {
+    if (!request) {
+      return FailureReason.REQUEST_NON_EXISTENT;
+    }
+    if (request.status !== BridgeRequestStatus.CREATED) {
+      return FailureReason.REQUEST_INVALID_STATUS;
+    }
+    if (request.source_address !== send.source_address) {
+      return FailureReason.REQUEST_SOURCE_ADDRESS_NOT_MATCHING;
+    }
+    if (request.asset !== send.asset) {
+      return FailureReason.REQUEST_ASSET_NOT_MATCHING;
+    }
+    if (request.amount !== send.amount) {
+      return FailureReason.REQUEST_AMOUNT_NOT_MATCHING;
+    }
+    return null;
   }
 }
