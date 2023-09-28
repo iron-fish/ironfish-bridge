@@ -13,6 +13,7 @@ import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { GraphileWorkerException } from '../graphile-worker/graphile-worker-exception';
 import { LoggerService } from '../logger/logger.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-head.service';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
 
@@ -23,6 +24,7 @@ export class WIronJobsController {
     private readonly config: ApiConfigService,
     private readonly logger: LoggerService,
     private readonly graphileWorkerService: GraphileWorkerService,
+    private readonly prisma: PrismaService,
     private readonly wIronSepoliaHeadService: WIronSepoliaHeadService,
   ) {}
 
@@ -63,21 +65,15 @@ export class WIronJobsController {
       'WIRON_FINALITY_HEIGHT_RANGE',
     );
     const headHeightWithFinality = head.number - finalityRange;
-    const queryHeightRange = 100;
     const currentHead = await this.wIronSepoliaHeadService.head();
     const fromBlockHeight = currentHead.height;
     const toBlockHeight = Math.min(
-      currentHead.height + queryHeightRange,
+      currentHead.height + this.config.get<number>('WIRON_QUERY_HEIGHT_RANGE'),
       headHeightWithFinality,
     );
 
     // Only query events if there is a range
     if (fromBlockHeight < toBlockHeight - 1) {
-      const toBlock = await provider.getBlock(toBlockHeight);
-      if (!toBlock || !toBlock.hash) {
-        throw new Error(`Cannot get block at height ${toBlockHeight}`);
-      }
-
       this.logger.debug(
         `Refreshing blocks from height ${fromBlockHeight} to ${toBlockHeight}`,
       );
@@ -112,16 +108,26 @@ export class WIronJobsController {
         };
       });
 
-      await this.bridgeService.upsertRequests(bridgeRequests);
-      await this.wIronSepoliaHeadService.updateHead(
-        toBlock.hash,
-        toBlock.number,
-      );
+      const toBlock = await provider.getBlock(toBlockHeight);
+      await this.prisma.$transaction(async (prisma) => {
+        if (!toBlock || !toBlock.hash) {
+          throw new Error(`Cannot get block at height ${toBlockHeight}`);
+        }
+
+        await this.bridgeService.upsertRequests(bridgeRequests, prisma);
+        await this.wIronSepoliaHeadService.updateHead(
+          toBlock.hash,
+          toBlock.number,
+          prisma,
+        );
+      });
     }
 
-    const refreshPeriodMinutes = 5;
     const runAt = new Date(
-      new Date().getTime() + refreshPeriodMinutes * 60 * 1000,
+      new Date().getTime() +
+        this.config.get<number>('REFRESH_WIRON_TRANSFERS_PERIOD_MINUTES') *
+          60 *
+          1000,
     );
     await this.graphileWorkerService.addJob(
       GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS,

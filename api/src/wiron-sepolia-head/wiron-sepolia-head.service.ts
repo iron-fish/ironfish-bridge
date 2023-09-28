@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { BasePrismaClient } from '../prisma/types/base-prisma-client';
 import { WIronSepoliaHead } from '.prisma/client';
 
 @Injectable()
@@ -23,8 +24,12 @@ export class WIronSepoliaHeadService {
     return record;
   }
 
-  async updateHead(hash: string, height: number): Promise<WIronSepoliaHead> {
-    return this.prisma.wIronSepoliaHead.upsert({
+  async updateHead(
+    hash: string,
+    height: number,
+    prisma: BasePrismaClient,
+  ): Promise<WIronSepoliaHead> {
+    return prisma.wIronSepoliaHead.upsert({
       create: {
         id: 1,
         hash,

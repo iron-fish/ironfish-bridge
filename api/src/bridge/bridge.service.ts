@@ -4,6 +4,7 @@
 import { Injectable } from '@nestjs/common';
 import { BridgeHead, BridgeRequest, BridgeRequestStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { BasePrismaClient } from '../prisma/types/base-prisma-client';
 import { BridgeDataDTO } from './types/dto';
 
 @Injectable()
@@ -20,20 +21,24 @@ export class BridgeService {
     });
   }
 
-  async upsertRequests(requests: BridgeDataDTO[]): Promise<BridgeRequest[]> {
+  async upsertRequests(
+    requests: BridgeDataDTO[],
+    client?: BasePrismaClient,
+  ): Promise<BridgeRequest[]> {
     const results = [];
+    const prisma = client ?? this.prisma;
 
     for (const request of requests) {
       let result;
 
       if (!request.source_transaction) {
-        result = await this.prisma.bridgeRequest.create({
+        result = await prisma.bridgeRequest.create({
           data: {
             ...request,
           },
         });
       } else {
-        result = await this.prisma.bridgeRequest.upsert({
+        result = await prisma.bridgeRequest.upsert({
           create: {
             ...request,
           },
