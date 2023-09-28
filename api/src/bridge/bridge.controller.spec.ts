@@ -132,10 +132,10 @@ describe('AssetsController', () => {
   describe('POST /bridge/send', () => {
     it('updates the request and initiates transfer via smartcontact', async () => {
       const data = bridgeRequestDTO({});
-      const bridgeRequest = await bridgeService.createRequests([
+      const bridgeRequest = await bridgeService.upsertRequests([
         { ...data, status: BridgeRequestStatus.CREATED },
       ]);
-      const bridgeRequestCompleted = await bridgeService.createRequests([
+      const bridgeRequestCompleted = await bridgeService.upsertRequests([
         { ...data, status: BridgeRequestStatus.CONFIRMED },
       ]);
       const nonExistentId = 1234567;
@@ -185,9 +185,9 @@ describe('AssetsController', () => {
     it('returns the configured public Iron Fish address of the bridge', async () => {
       const { body } = await request(app.getHttpServer())
         .get('/bridge/address')
-        .expect(HttpStatus.OK)
-      
-      expect(body.address).toEqual(IRONFISH_BRIDGE_ADDRESS)
-    })
-  })
+        .expect(HttpStatus.OK);
+
+      expect(body.address).toEqual(IRONFISH_BRIDGE_ADDRESS);
+    });
+  });
 });

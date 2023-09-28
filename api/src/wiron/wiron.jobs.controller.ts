@@ -12,6 +12,7 @@ import { WIron__factory } from '../contracts';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { GraphileWorkerException } from '../graphile-worker/graphile-worker-exception';
+import { LoggerService } from '../logger/logger.service';
 import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-head.service';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
 
@@ -20,6 +21,7 @@ export class WIronJobsController {
   constructor(
     private readonly bridgeService: BridgeService,
     private readonly config: ApiConfigService,
+    private readonly logger: LoggerService,
     private readonly graphileWorkerService: GraphileWorkerService,
     private readonly wIronSepoliaHeadService: WIronSepoliaHeadService,
   ) {}
@@ -45,10 +47,6 @@ export class WIronJobsController {
   @MessagePattern(GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS)
   @UseFilters(new GraphileWorkerException())
   async refreshTransfers() {
-    const refreshPeriodMinutes = 2;
-    const finalityRange = 10;
-    const depositAddress = '0x26c6535396ba6ef996a81e4f2ac7956c91da5e1f';
-
     const wIronDeployerPrivateKey = this.config.get<string>(
       'WIRON_DEPLOYER_PRIVATE_KEY',
     );
@@ -60,47 +58,60 @@ export class WIronJobsController {
     if (!head) {
       throw new Error('Null head');
     }
-    const headHeightWithFinality = head.number - finalityRange;
 
-    const queryRange = 100;
+    const finalityRange = this.config.get<number>(
+      'WIRON_FINALITY_HEIGHT_RANGE',
+    );
+    const headHeightWithFinality = head.number - finalityRange;
+    const queryHeightRange = 100;
     const currentHead = await this.wIronSepoliaHeadService.head();
     const fromBlockHeight = currentHead.height;
     const toBlockHeight = Math.min(
-      currentHead.height + queryRange,
+      currentHead.height + queryHeightRange,
       headHeightWithFinality,
     );
 
-    // Only get events if there is a range
+    // Only query events if there is a range
     if (fromBlockHeight < toBlockHeight - 1) {
       const toBlock = await provider.getBlock(toBlockHeight);
-      if (!toBlock) {
+      if (!toBlock || !toBlock.hash) {
         throw new Error(`Cannot get block at height ${toBlockHeight}`);
       }
-      if (!toBlock.hash) {
-        throw new Error(`Null hash for block ${toBlockHeight}`);
-      }
 
+      this.logger.debug(
+        `Refreshing blocks from height ${fromBlockHeight} to ${toBlockHeight}`,
+      );
       const filter = contract.filters.TransferWithMetadata(
         undefined,
-        depositAddress,
+        this.config.get<string>('WIRON_DEPOSIT_ADDRESS'),
       );
-      // Upper bound is inclusive
       const events = await contract.queryFilter(
         filter,
         fromBlockHeight,
+        // Upper bound is inclusive
         toBlockHeight - 1,
       );
+      this.logger.debug(`Processing ${events.length} bridge requests`);
 
-      const bridgeRequests = events.map((event) => ({
-        source_address: event.args[0],
-        destination_address: event.args[1],
-        asset: 'WIRON',
-        source_chain: Chain.ETHEREUM,
-        destination_chain: Chain.IRONFISH,
-        source_transaction: event.transactionHash,
-        destination_transaction: null,
-        status: BridgeRequestStatus.CREATED,
-      }));
+      const bridgeRequests = events.map((event) => {
+        let destinationAddress = event.args[3];
+        if (destinationAddress.startsWith('0x')) {
+          destinationAddress = destinationAddress.slice(2);
+        }
+
+        return {
+          source_address: event.args[0],
+          destination_address: event.args[3],
+          amount: event.args[2].toString(),
+          asset: 'WIRON',
+          source_chain: Chain.ETHEREUM,
+          destination_chain: Chain.IRONFISH,
+          source_transaction: event.transactionHash,
+          destination_transaction: null,
+          status: BridgeRequestStatus.CREATED,
+        };
+      });
+
       await this.bridgeService.upsertRequests(bridgeRequests);
       await this.wIronSepoliaHeadService.updateHead(
         toBlock.hash,
@@ -108,13 +119,14 @@ export class WIronJobsController {
       );
     }
 
+    const refreshPeriodMinutes = 5;
     const runAt = new Date(
       new Date().getTime() + refreshPeriodMinutes * 60 * 1000,
     );
     await this.graphileWorkerService.addJob(
       GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS,
       {},
-      { runAt },
+      { runAt, jobKey: 'refresh_wiron_transfers' },
     );
 
     return { requeue: false };

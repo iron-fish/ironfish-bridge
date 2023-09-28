@@ -33,8 +33,11 @@ export class BridgeService {
           },
         });
       } else {
-        result = await this.prisma.bridgeRequest.update({
-          data: {
+        result = await this.prisma.bridgeRequest.upsert({
+          create: {
+            ...request,
+          },
+          update: {
             source_transaction: request.source_transaction,
             destination_transaction: request.destination_transaction,
             status: request.status,

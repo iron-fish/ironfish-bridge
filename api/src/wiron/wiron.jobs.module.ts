@@ -5,6 +5,7 @@ import { Module } from '@nestjs/common';
 import { ApiConfigModule } from '../api-config/api-config.module';
 import { BridgeModule } from '../bridge/bridge.module';
 import { GraphileWorkerModule } from '../graphile-worker/graphile-worker.module';
+import { LoggerModule } from '../logger/logger.module';
 import { WIronSepoliaHeadModule } from '../wiron-sepolia-head/wiron-sepolia-head.module';
 import { WIronJobsController } from './wiron.jobs.controller';
 
@@ -14,6 +15,7 @@ import { WIronJobsController } from './wiron.jobs.controller';
     ApiConfigModule,
     BridgeModule,
     GraphileWorkerModule,
+    LoggerModule,
     WIronSepoliaHeadModule,
   ],
 })

@@ -11,6 +11,7 @@ import {
   ValidationPipe,
 } from '@nestjs/common';
 import { BridgeRequestStatus } from '@prisma/client';
+import { ApiConfigService } from '../api-config/api-config.service';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
@@ -25,7 +26,6 @@ import {
   HeadHash,
   OptionalHeadHash,
 } from './types/dto';
-import { ApiConfigService } from '../api-config/api-config.service';
 
 @Controller('bridge')
 export class BridgeController {
@@ -150,7 +150,7 @@ export class BridgeController {
   }
 
   @Get('address')
-  async getAddress(): Promise<{ address: string }> {
+  getAddress(): { address: string } {
     const address = this.config.get<string>('IRONFISH_BRIDGE_ADDRESS');
     return { address };
   }
