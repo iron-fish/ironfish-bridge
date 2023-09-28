@@ -13,11 +13,11 @@ env:
   DATABASE_URL: postgres://postgres:password@localhost:5432/ironfish_bridge_api_development
   GRAPHILE_CONCURRENCY: 10
   IRONFISH_BRIDGE_ADDRESS: test
-  # random key below, added to make tests pass
-  IRONFISH_BRIDGE_API_KEY: 9ea04ca7f029239cadd3058a34e4c0d1481bfad231ff37fa06f05eaf8a2f9533
+  IRONFISH_BRIDGE_API_KEY: test
   NODE_ENV: development
   REFRESH_WIRON_TRANSFERS_PERIOD_MINUTES: 2
-  WIRON_DEPLOYER_PRIVATE_KEY: test
+  # random key below, added to make tests pass
+  WIRON_DEPLOYER_PRIVATE_KEY: 9ea04ca7f029239cadd3058a34e4c0d1481bfad231ff37fa06f05eaf8a2f9533
   WIRON_DEPOSIT_ADDRESS: test
   WIRON_FINALITY_HEIGHT_RANGE: 10
   WIRON_QUERY_HEIGHT_RANGE: 100
