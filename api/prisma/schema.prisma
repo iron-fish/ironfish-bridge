@@ -9,35 +9,52 @@ datasource db {
 }
 
 model BridgeRequest {
-  id                      Int                  @id @default(autoincrement())
-  amount                  String               @db.VarChar
-  asset                   String               @db.VarChar
-  source_address          String               @db.VarChar
-  destination_address     String               @db.VarChar
-  source_transaction      String?              @db.VarChar @unique
-  destination_transaction String?              @db.VarChar
-  source_chain            Chain                
-  destination_chain       Chain                
+  id                      Int                   @id @default(autoincrement())
+  asset                   String                @db.VarChar
+  source_address          String                @db.VarChar
+  destination_address     String                @db.VarChar
+  source_transaction      String?               @unique @db.VarChar
+  destination_transaction String?               @db.VarChar
+  source_chain            Chain
+  destination_chain       Chain
   status                  BridgeRequestStatus
+  amount                  String                @db.VarChar
   failure_reason          FailureReason?
+  completed_at            DateTime?             @db.Timestamp(6)
+  created_at              DateTime              @default(now()) @db.Timestamp(6)
+  started_at              DateTime?             @db.Timestamp(6)
+  updated_at              DateTime              @default(now()) @updatedAt @db.Timestamp(6)
   failures                FailedBridgeRequest[]
 
   @@index([source_address], map: "index_bridge_request_on_source_address")
   @@index([destination_address], map: "index_bridge_request_on_destination_address")
-
+  @@index([completed_at], map: "index_bridge_requests_on_completed_at")
+  @@index([started_at, completed_at], map: "index_bridge_requests_on_completed_at_and_started_at")
 }
 
 model FailedBridgeRequest {
-  id                      Int                  @id @default(autoincrement())
-  bridge_request_id       Int?
-  bridge_request          BridgeRequest?        @relation(fields: [bridge_request_id], references: [id])
-  failure_reason          FailureReason
+  id                Int            @id @default(autoincrement())
+  bridge_request_id Int?
+  failure_reason    FailureReason
+  bridge_request    BridgeRequest? @relation(fields: [bridge_request_id], references: [id])
+}
 
+model BridgeHead {
+  hash String @unique @db.VarChar
+}
+
+model WIronSepoliaHead {
+  id     Int    @id
+  hash   String @db.VarChar
+  height Int
+
+  @@map("wiron_sepolia_head")
 }
 
 enum Chain {
   IRONFISH
   ETHEREUM
+
   @@map("chain_name")
 }
 
@@ -47,19 +64,8 @@ enum BridgeRequestStatus {
   PENDING_ON_DESTINATION_CHAIN
   CONFIRMED
   FAILED
+
   @@map("bridge_request_status")
-}
-
-model BridgeHead {
-  hash      String   @db.VarChar @unique
-}
-
-model WIronSepoliaHead {
-  id   Int    @id
-  hash String @db.VarChar
-  height Int 
-
-  @@map("wiron_sepolia_head")
 }
 
 enum FailureReason {
@@ -68,5 +74,6 @@ enum FailureReason {
   REQUEST_SOURCE_ADDRESS_NOT_MATCHING
   REQUEST_AMOUNT_NOT_MATCHING
   REQUEST_ASSET_NOT_MATCHING
+
   @@map("failure_reason")
 }
