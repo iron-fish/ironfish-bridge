@@ -8,6 +8,7 @@ import {
   BridgeRequestStatus,
   FailedBridgeRequest,
   FailureReason,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { BasePrismaClient } from '../prisma/types/base-prisma-client';
@@ -106,53 +107,43 @@ export class BridgeService {
   }
 
   async nextWIronBridgeRequests(count?: number): Promise<BridgeRequest[]> {
-    count = count ?? 1
+    count = count ?? 1;
 
-    const currentlyRunningWIronRequests = this.prisma.bridgeRequest.findMany({
-      where: {
-        source_chain: 'ETHEREUM',
-        destination_chain: 'IRONFISH',
-        status: {
-          in: [BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN, BridgeRequestStatus.PENDING_PRETRANSFER]
-        }
-      },
-      orderBy: {
-        cre
-      },
-      take: count,
-    });
-    const currentlyRunningFaucetTransactions =
-        await prisma.faucetTransaction.findMany({
+    const currentlyRunningWIronRequests =
+      await this.prisma.bridgeRequest.findMany({
+        where: {
+          source_chain: 'ETHEREUM',
+          destination_chain: 'IRONFISH',
+          status: {
+            in: [
+              BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+              BridgeRequestStatus.PENDING_PRETRANSFER,
+            ],
+          },
+        },
+        orderBy: {
+          created_at: Prisma.SortOrder.asc,
+        },
+        take: count,
+      });
+
+    if (currentlyRunningWIronRequests.length < count) {
+      const diff = count - currentlyRunningWIronRequests.length;
+      const unfulfilledBridgeRequests =
+        await this.prisma.bridgeRequest.findMany({
           where: {
-            started_at: {
-              not: null,
-            },
-            completed_at: null,
+            source_chain: 'ETHEREUM',
+            destination_chain: 'IRONFISH',
+            status: BridgeRequestStatus.CREATED,
           },
           orderBy: {
             created_at: Prisma.SortOrder.asc,
           },
-          take: count,
+          take: diff,
         });
-      if (currentlyRunningFaucetTransactions.length < count) {
-        const diff = count - currentlyRunningFaucetTransactions.length;
-        const unfulfilledFaucetTransactions =
-          await prisma.faucetTransaction.findMany({
-            where: {
-              started_at: null,
-              completed_at: null,
-            },
-            orderBy: {
-              created_at: Prisma.SortOrder.asc,
-            },
-            take: diff,
-          });
-        return [
-          ...currentlyRunningFaucetTransactions,
-          ...unfulfilledFaucetTransactions,
-        ];
-      }
+      return [...currentlyRunningWIronRequests, ...unfulfilledBridgeRequests];
+    }
 
-      return currentlyRunningFaucetTransactions;
+    return currentlyRunningWIronRequests;
   }
 }

@@ -7,6 +7,7 @@ import {
   Get,
   HttpStatus,
   Post,
+  Query,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
@@ -18,6 +19,7 @@ import {
 import assert from 'assert';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
+import { List } from '../common/interfaces/list';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
@@ -31,7 +33,7 @@ import {
   HeadHash,
   OptionalHeadHash,
 } from './types/dto';
-import { List } from '../common/interfaces/list';
+import { NextWIronBridgeRequestsDto } from './types/next-wiron-bridge-requests.dto';
 
 @Controller('bridge')
 export class BridgeController {
@@ -184,10 +186,20 @@ export class BridgeController {
     return null;
   }
 
-  async nextWIronBridgeRequests(): Promise<List<BridgeRequest>> {
+  @Get('next_wiron_requests')
+  @UseGuards(ApiKeyGuard)
+  async nextWIronBridgeRequests(
+    @Query(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { count }: NextWIronBridgeRequestsDto,
+  ): Promise<List<BridgeRequest>> {
     return {
       object: 'list',
-      data: await this.bridgeService.nextWIronBridgeRequests(),
-    }
+      data: await this.bridgeService.nextWIronBridgeRequests(count),
+    };
   }
 }
