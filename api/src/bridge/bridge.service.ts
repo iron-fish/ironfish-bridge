@@ -27,6 +27,27 @@ export class BridgeService {
     });
   }
 
+  async findByStatus(options: {
+    status: BridgeRequestStatus;
+    inverse?: boolean;
+  }): Promise<BridgeRequest[]> {
+    let where;
+    if (options.inverse) {
+      where = {
+        NOT: {
+          status: options.status,
+        },
+      };
+    } else {
+      where = {
+        status: options.status,
+      };
+    }
+    return this.prisma.bridgeRequest.findMany({
+      where,
+    });
+  }
+
   async upsertRequests(
     requests: BridgeDataDTO[],
     client?: BasePrismaClient,

@@ -77,33 +77,60 @@ export class WIronJobsController {
         toBlockHeight - 1,
       );
       this.logger.debug(`Processing ${events.length} bridge requests`);
+      await this.prisma.$transaction(async (prisma) => {
+        const createdMints = events.map((event) => {
+          let destinationAddress = event.args[3];
+          if (destinationAddress.startsWith('0x')) {
+            destinationAddress = destinationAddress.slice(2);
+          }
 
-      const bridgeRequests = events.map((event) => {
-        let destinationAddress = event.args[3];
-        if (destinationAddress.startsWith('0x')) {
-          destinationAddress = destinationAddress.slice(2);
+          return {
+            source_address: event.args[0],
+            destination_address: destinationAddress,
+            amount: event.args[2].toString(),
+            asset: 'WIRON',
+            source_chain: Chain.ETHEREUM,
+            destination_chain: Chain.IRONFISH,
+            source_transaction: event.transactionHash,
+            destination_transaction: null,
+            status: BridgeRequestStatus.CREATED,
+          };
+        });
+        await this.bridgeService.upsertRequests(createdMints, prisma);
+
+        const allTxHashes: { [keyof: string]: number } = {};
+        for (let i = fromBlockHeight; i <= toBlockHeight - 1; i++) {
+          const block = await provider.getBlock(i);
+          if (!block) {
+            throw new Error(`Cannot get block at height ${i}`);
+          }
+          for (const txHash of block.transactions) {
+            allTxHashes[txHash] = i;
+          }
         }
 
-        return {
-          source_address: event.args[0],
-          destination_address: destinationAddress,
-          amount: event.args[2].toString(),
-          asset: 'WIRON',
-          source_chain: Chain.ETHEREUM,
-          destination_chain: Chain.IRONFISH,
-          source_transaction: event.transactionHash,
-          destination_transaction: null,
-          status: BridgeRequestStatus.CREATED,
-        };
-      });
+        const unconfirmedMints = await this.bridgeService.findByStatus({
+          status: BridgeRequestStatus.CONFIRMED,
+          inverse: true,
+        });
+        const confirmedMints = unconfirmedMints.reduce((acc, mint) => {
+          if (
+            mint.source_transaction &&
+            mint.source_transaction in allTxHashes
+          ) {
+            mint.status = BridgeRequestStatus.CONFIRMED;
+            mint.destination_block_height =
+              allTxHashes[mint.source_transaction];
+            acc.push(mint);
+          }
+          return acc;
+        }, [] as typeof unconfirmedMints);
 
-      const toBlock = await provider.getBlock(toBlockHeight);
-      await this.prisma.$transaction(async (prisma) => {
+        const toBlock = await provider.getBlock(toBlockHeight);
         if (!toBlock || !toBlock.hash) {
           throw new Error(`Cannot get block at height ${toBlockHeight}`);
         }
-
-        await this.bridgeService.upsertRequests(bridgeRequests, prisma);
+        await this.bridgeService.upsertRequests(confirmedMints, prisma);
         await this.wIronSepoliaHeadService.updateHead(
           toBlock.hash,
           toBlock.number,

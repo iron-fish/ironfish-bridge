@@ -15,6 +15,7 @@ model BridgeRequest {
   destination_address     String                @db.VarChar
   source_transaction      String?               @unique @db.VarChar
   destination_transaction String?               @db.VarChar
+  destination_block_height Int?
   source_chain            Chain
   destination_chain       Chain
   status                  BridgeRequestStatus
