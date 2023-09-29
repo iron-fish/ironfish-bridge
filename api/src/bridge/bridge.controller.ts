@@ -31,6 +31,7 @@ import {
   HeadHash,
   OptionalHeadHash,
 } from './types/dto';
+import { List } from '../common/interfaces/list';
 
 @Controller('bridge')
 export class BridgeController {
@@ -181,5 +182,12 @@ export class BridgeController {
       return FailureReason.REQUEST_AMOUNT_NOT_MATCHING;
     }
     return null;
+  }
+
+  async nextWIronBridgeRequests(): Promise<List<BridgeRequest>> {
+    return {
+      object: 'list',
+      data: await this.bridgeService.nextWIronBridgeRequests(),
+    }
   }
 }

@@ -104,4 +104,55 @@ export class BridgeService {
       },
     });
   }
+
+  async nextWIronBridgeRequests(count?: number): Promise<BridgeRequest[]> {
+    count = count ?? 1
+
+    const currentlyRunningWIronRequests = this.prisma.bridgeRequest.findMany({
+      where: {
+        source_chain: 'ETHEREUM',
+        destination_chain: 'IRONFISH',
+        status: {
+          in: [BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN, BridgeRequestStatus.PENDING_PRETRANSFER]
+        }
+      },
+      orderBy: {
+        cre
+      },
+      take: count,
+    });
+    const currentlyRunningFaucetTransactions =
+        await prisma.faucetTransaction.findMany({
+          where: {
+            started_at: {
+              not: null,
+            },
+            completed_at: null,
+          },
+          orderBy: {
+            created_at: Prisma.SortOrder.asc,
+          },
+          take: count,
+        });
+      if (currentlyRunningFaucetTransactions.length < count) {
+        const diff = count - currentlyRunningFaucetTransactions.length;
+        const unfulfilledFaucetTransactions =
+          await prisma.faucetTransaction.findMany({
+            where: {
+              started_at: null,
+              completed_at: null,
+            },
+            orderBy: {
+              created_at: Prisma.SortOrder.asc,
+            },
+            take: diff,
+          });
+        return [
+          ...currentlyRunningFaucetTransactions,
+          ...unfulfilledFaucetTransactions,
+        ];
+      }
+
+      return currentlyRunningFaucetTransactions;
+  }
 }
