@@ -19,7 +19,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { bridgeRequestDTO } from '../test/mocks';
 import { bootstrapTestApp } from '../test/test-app';
 import { BridgeService } from './bridge.service';
-import { BridgeSendRequestDTO } from './types/dto';
+import { BridgeConfirmRequestDTO, BridgeSendRequestDTO } from './types/dto';
 
 describe('AssetsController', () => {
   let app: INestApplication;
@@ -367,6 +367,93 @@ describe('AssetsController', () => {
             status: mockData[1].status,
           },
         ]);
+      });
+    });
+  });
+
+  describe('POST /bridge/confirm', () => {
+    describe('failure cases', () => {
+      it('nonexistent request id fails', async () => {
+        const confirm: BridgeConfirmRequestDTO = {
+          id: 123132132,
+          destination_transaction: '123123',
+        };
+
+        const response = await request(app.getHttpServer())
+          .post('/bridge/confirm')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .send({
+            confirms: [confirm],
+          })
+          .expect(HttpStatus.CREATED);
+
+        expect(response.body).toMatchObject({
+          [confirm.id]: {
+            status: null,
+          },
+        });
+      });
+
+      it('invalid status fails', async () => {
+        const dto = bridgeRequestDTO({
+          status: BridgeRequestStatus.PENDING_PRETRANSFER,
+        });
+        const bridgeRequest = await bridgeService.upsertRequests([dto]);
+        const confirm: BridgeConfirmRequestDTO = {
+          id: bridgeRequest[0].id,
+          destination_transaction: dto.destination_transaction || '123123',
+        };
+
+        const response = await request(app.getHttpServer())
+          .post('/bridge/confirm')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .send({
+            confirms: [confirm],
+          })
+          .expect(HttpStatus.CREATED);
+
+        expect(response.body).toMatchObject({
+          [confirm.id]: {
+            status: BridgeRequestStatus.PENDING_PRETRANSFER,
+          },
+        });
+      });
+    });
+
+    describe('success case', () => {
+      it('updates the request status', async () => {
+        const dto = bridgeRequestDTO({});
+        const bridgeRequest = await bridgeService.upsertRequests([
+          { ...dto, status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN },
+        ]);
+
+        const confirm: BridgeConfirmRequestDTO = {
+          id: bridgeRequest[0].id,
+          destination_transaction: dto.destination_transaction || '123123',
+        };
+
+        const response = await request(app.getHttpServer())
+          .post('/bridge/confirm')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .send({
+            confirms: [confirm],
+          })
+          .expect(HttpStatus.CREATED);
+
+        const updatedRequest = await bridgeService.findByIds([
+          bridgeRequest[0].id,
+        ]);
+
+        expect(updatedRequest[0].status).toBe(BridgeRequestStatus.CONFIRMED);
+        expect(updatedRequest[0].destination_transaction).toBe(
+          confirm.destination_transaction,
+        );
+
+        expect(response.body).toMatchObject({
+          [bridgeRequest[0].id]: {
+            status: BridgeRequestStatus.CONFIRMED,
+          },
+        });
       });
     });
   });

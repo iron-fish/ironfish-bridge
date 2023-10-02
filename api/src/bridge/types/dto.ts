@@ -46,3 +46,12 @@ export type BridgeCreateDTO = { [keyof: Address]: AddressFk };
 export type HeadHash = { hash: string };
 
 export type OptionalHeadHash = { hash: string | null };
+
+export type BridgeConfirmRequestDTO = {
+  id: AddressFk;
+  destination_transaction: string;
+};
+
+export type BridgeConfirmResponseDTO = {
+  [keyof: AddressFk]: { status: BridgeRequestStatus | null };
+};

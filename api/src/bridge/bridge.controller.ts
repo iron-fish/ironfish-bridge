@@ -25,6 +25,8 @@ import { GraphileWorkerService } from '../graphile-worker/graphile-worker.servic
 import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
 import { BridgeService } from './bridge.service';
 import {
+  BridgeConfirmRequestDTO,
+  BridgeConfirmResponseDTO,
   BridgeCreateDTO,
   BridgeDataDTO,
   BridgeRetrieveDTO,
@@ -162,6 +164,46 @@ export class BridgeController {
   getAddress(): { address: string } {
     const address = this.config.get<string>('IRONFISH_BRIDGE_ADDRESS');
     return { address };
+  }
+
+  @UseGuards(ApiKeyGuard)
+  @Post('confirm')
+  async confirm(
+    @Body(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { confirms }: { confirms: BridgeConfirmRequestDTO[] },
+  ): Promise<BridgeConfirmResponseDTO> {
+    const requests = await this.bridgeService.findByIds(
+      confirms.map((c) => c.id),
+    );
+    const response: BridgeConfirmResponseDTO = {};
+    for (const confirm of confirms) {
+      const request = requests.find((r) => r.id === confirm.id) ?? null;
+
+      if (!request) {
+        response[confirm.id] = { status: null };
+        continue;
+      }
+
+      if (request.status !== BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN) {
+        response[confirm.id] = { status: request.status };
+        continue;
+      }
+
+      const status = BridgeRequestStatus.CONFIRMED;
+      await this.bridgeService.updateRequest({
+        id: request.id,
+        status,
+        destination_transaction: confirm.destination_transaction ?? undefined,
+      });
+
+      response[confirm.id] = { status };
+    }
+    return response;
   }
 
   validateSend(
