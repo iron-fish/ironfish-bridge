@@ -290,7 +290,7 @@ describe('AssetsController', () => {
       });
     });
 
-    describe('when multiple FaucetTransactions are requested', () => {
+    describe('when multiple wiron bridge requests are requested', () => {
       it('returns the records', async () => {
         const mockData = [
           {

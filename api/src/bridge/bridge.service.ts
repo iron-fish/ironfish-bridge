@@ -107,43 +107,16 @@ export class BridgeService {
   }
 
   async nextWIronBridgeRequests(count?: number): Promise<BridgeRequest[]> {
-    count = count ?? 1;
-
-    const currentlyRunningWIronRequests =
-      await this.prisma.bridgeRequest.findMany({
-        where: {
-          source_chain: 'ETHEREUM',
-          destination_chain: 'IRONFISH',
-          status: {
-            in: [
-              BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
-              BridgeRequestStatus.PENDING_PRETRANSFER,
-            ],
-          },
-        },
-        orderBy: {
-          created_at: Prisma.SortOrder.asc,
-        },
-        take: count,
-      });
-
-    if (currentlyRunningWIronRequests.length < count) {
-      const diff = count - currentlyRunningWIronRequests.length;
-      const unfulfilledBridgeRequests =
-        await this.prisma.bridgeRequest.findMany({
-          where: {
-            source_chain: 'ETHEREUM',
-            destination_chain: 'IRONFISH',
-            status: BridgeRequestStatus.CREATED,
-          },
-          orderBy: {
-            created_at: Prisma.SortOrder.asc,
-          },
-          take: diff,
-        });
-      return [...currentlyRunningWIronRequests, ...unfulfilledBridgeRequests];
-    }
-
-    return currentlyRunningWIronRequests;
+    return this.prisma.bridgeRequest.findMany({
+      where: {
+        source_chain: 'ETHEREUM',
+        destination_chain: 'IRONFISH',
+        status: BridgeRequestStatus.CREATED,
+      },
+      orderBy: {
+        created_at: Prisma.SortOrder.asc,
+      },
+      take: count ?? 1,
+    });
   }
 }

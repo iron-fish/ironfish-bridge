@@ -135,7 +135,6 @@ describe('BridgeService', () => {
         expect(await bridgeService.nextWIronBridgeRequests(3)).toMatchObject([
           runningBridgeRequest1,
           runningBridgeRequest2,
-          pendingBridgeRequest,
         ]);
       });
     });
