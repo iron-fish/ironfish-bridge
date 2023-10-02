@@ -32,6 +32,8 @@ import {
   BridgeSendResponseDTO,
   HeadHash,
   OptionalHeadHash,
+  UpdateWIronRequestDTO,
+  UpdateWIronResponseDTO,
 } from './types/dto';
 import { NextWIronBridgeRequestsDto } from './types/next-wiron-bridge-requests.dto';
 
@@ -162,6 +164,40 @@ export class BridgeController {
   getAddress(): { address: string } {
     const address = this.config.get<string>('IRONFISH_BRIDGE_ADDRESS');
     return { address };
+  }
+
+  @UseGuards(ApiKeyGuard)
+  @Post('update_wiron_requests')
+  async updateWIronBridgeRequests(
+    @Body(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { transactions }: { transactions: UpdateWIronRequestDTO[] },
+  ): Promise<UpdateWIronResponseDTO> {
+    const requests = await this.bridgeService.findByIds(
+      transactions.map((t) => t.id),
+    );
+    const response: UpdateWIronResponseDTO = {};
+    for (const transaction of transactions) {
+      const request = requests.find((r) => r.id === transaction.id) ?? null;
+
+      if (!request) {
+        response[transaction.id] = { status: null };
+        continue;
+      }
+
+      await this.bridgeService.updateRequest({
+        id: transaction.id,
+        status: transaction.status,
+        destination_transaction: transaction.destination_transaction,
+      });
+
+      response[transaction.id] = { status: transaction.status };
+    }
+    return response;
   }
 
   validateSend(
