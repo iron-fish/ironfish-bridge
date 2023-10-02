@@ -93,7 +93,7 @@ export class WIronJobsController {
           destination_chain: Chain.IRONFISH,
           source_transaction: event.transactionHash,
           destination_transaction: null,
-          status: BridgeRequestStatus.CREATED,
+          status: BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CREATION,
         };
       });
 
