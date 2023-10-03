@@ -4,14 +4,12 @@
 import { BridgeRequestStatus, Chain } from '@prisma/client';
 import { BridgeDataDTO } from '../bridge/types/dto';
 
-/* This Source Code Form is subject to the terms of the Mozilla Public
- * License, v. 2.0. If a copy of the MPL was not distributed with this
- * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export const bridgeRequestDTO = (options: {
   destination_address?: string;
   source_address?: string;
   amount?: string;
   status?: BridgeRequestStatus;
+  wiron_burn_transaction?: string;
 }): BridgeDataDTO => ({
   amount: options.amount ?? '100',
   source_address: options.source_address ?? '0x0000000',
@@ -23,4 +21,5 @@ export const bridgeRequestDTO = (options: {
   status: options.status ?? BridgeRequestStatus.CREATED,
   source_chain: Chain.ETHEREUM,
   destination_chain: Chain.IRONFISH,
+  wiron_burn_transaction: options.wiron_burn_transaction ?? null,
 });
