@@ -10,7 +10,7 @@ import {
   it,
 } from '@jest/globals';
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { BridgeRequestStatus, FailureReason } from '@prisma/client';
+import { BridgeRequestStatus, Chain, FailureReason } from '@prisma/client';
 import assert from 'assert';
 import request from 'supertest';
 import { ApiConfigService } from '../api-config/api-config.service';
@@ -276,6 +276,96 @@ describe('AssetsController', () => {
         .expect(HttpStatus.OK);
 
       expect(body.address).toEqual(IRONFISH_BRIDGE_ADDRESS);
+    });
+  });
+
+  describe('GET /bridge/next_wiron_requests', () => {
+    describe('with a missing api key', () => {
+      it('returns a 401', async () => {
+        const { body } = await request(app.getHttpServer())
+          .get('/bridge/next_wiron_requests')
+          .expect(HttpStatus.UNAUTHORIZED);
+
+        expect(body).toMatchSnapshot();
+      });
+    });
+
+    describe('when multiple wiron bridge requests are requested', () => {
+      it('returns the records', async () => {
+        const mockData = [
+          {
+            id: 0,
+            amount: '0',
+            asset: 'IRON',
+            source_address: 'source',
+            destination_address: 'destination',
+            source_transaction: null,
+            destination_transaction: null,
+            source_chain: Chain.ETHEREUM,
+            destination_chain: Chain.IRONFISH,
+            status: BridgeRequestStatus.PENDING_PRETRANSFER,
+            failure_reason: null,
+            created_at: new Date(),
+            updated_at: new Date(),
+            started_at: new Date(),
+            completed_at: null,
+          },
+          {
+            id: 1,
+            amount: '1',
+            asset: 'IRON',
+            source_address: 'source',
+            destination_address: 'destination',
+            source_transaction: null,
+            destination_transaction: null,
+            source_chain: Chain.ETHEREUM,
+            destination_chain: Chain.IRONFISH,
+            status: BridgeRequestStatus.PENDING_PRETRANSFER,
+            failure_reason: null,
+            created_at: new Date(),
+            updated_at: new Date(),
+            started_at: new Date(),
+            completed_at: null,
+          },
+        ];
+        jest
+          .spyOn(bridgeService, 'nextWIronBridgeRequests')
+          .mockResolvedValueOnce(mockData);
+
+        const { body } = await request(app.getHttpServer())
+          .get('/bridge/next_wiron_requests')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .query({ count: 2 })
+          .expect(HttpStatus.OK);
+
+        const { data } = body;
+        expect(data as unknown[]).toMatchObject([
+          {
+            id: mockData[0].id,
+            amount: mockData[0].amount,
+            asset: mockData[0].asset,
+            source_address: mockData[0].source_address,
+            destination_address: mockData[0].destination_address,
+            source_transaction: mockData[0].source_transaction,
+            destination_transaction: mockData[0].destination_transaction,
+            source_chain: mockData[0].source_chain,
+            destination_chain: mockData[0].destination_chain,
+            status: mockData[0].status,
+          },
+          {
+            id: mockData[1].id,
+            amount: mockData[1].amount,
+            asset: mockData[1].asset,
+            source_address: mockData[1].source_address,
+            destination_address: mockData[1].destination_address,
+            source_transaction: mockData[1].source_transaction,
+            destination_transaction: mockData[1].destination_transaction,
+            source_chain: mockData[1].source_chain,
+            destination_chain: mockData[1].destination_chain,
+            status: mockData[1].status,
+          },
+        ]);
+      });
     });
   });
 });

@@ -8,6 +8,7 @@ import {
   BridgeRequestStatus,
   FailedBridgeRequest,
   FailureReason,
+  Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { BasePrismaClient } from '../prisma/types/base-prisma-client';
@@ -102,6 +103,20 @@ export class BridgeService {
         bridge_request,
         failure_reason,
       },
+    });
+  }
+
+  async nextWIronBridgeRequests(count?: number): Promise<BridgeRequest[]> {
+    return this.prisma.bridgeRequest.findMany({
+      where: {
+        source_chain: 'ETHEREUM',
+        destination_chain: 'IRONFISH',
+        status: BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+      },
+      orderBy: {
+        created_at: Prisma.SortOrder.asc,
+      },
+      take: count ?? 1,
     });
   }
 }
