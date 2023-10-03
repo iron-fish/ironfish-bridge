@@ -19,7 +19,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { bridgeRequestDTO } from '../test/mocks';
 import { bootstrapTestApp } from '../test/test-app';
 import { BridgeService } from './bridge.service';
-import { BridgeSendRequestDTO } from './types/dto';
+import { BridgeSendRequestDTO, UpdateWIronRequestDTO } from './types/dto';
 
 describe('AssetsController', () => {
   let app: INestApplication;
@@ -367,6 +367,76 @@ describe('AssetsController', () => {
             status: mockData[1].status,
           },
         ]);
+      });
+    });
+  });
+
+  describe('POST /bridge/update_wiron_requests', () => {
+    describe('failure cases', () => {
+      it('nonexistent request id fails', async () => {
+        const transaction: UpdateWIronRequestDTO = {
+          id: 123132132,
+          destination_transaction: '123123',
+          status: BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+        };
+
+        const response = await request(app.getHttpServer())
+          .post('/bridge/update_wiron_requests')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .send({
+            transactions: [transaction],
+          })
+          .expect(HttpStatus.CREATED);
+
+        expect(response.body).toMatchObject({
+          [transaction.id]: {
+            status: null,
+          },
+        });
+      });
+    });
+
+    describe('success case', () => {
+      it('updates the request status', async () => {
+        const dto = bridgeRequestDTO({});
+        const bridgeRequest = await bridgeService.upsertRequests([
+          {
+            ...dto,
+            status:
+              BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+          },
+        ]);
+
+        const transaction: UpdateWIronRequestDTO = {
+          id: bridgeRequest[0].id,
+          destination_transaction: dto.destination_transaction || '123123',
+          status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+        };
+
+        const response = await request(app.getHttpServer())
+          .post('/bridge/update_wiron_requests')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .send({
+            transactions: [transaction],
+          })
+          .expect(HttpStatus.CREATED);
+
+        const updatedRequest = await bridgeService.findByIds([
+          bridgeRequest[0].id,
+        ]);
+
+        expect(updatedRequest[0].status).toBe(
+          BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+        );
+        expect(updatedRequest[0].destination_transaction).toBe(
+          transaction.destination_transaction,
+        );
+
+        expect(response.body).toMatchObject({
+          [bridgeRequest[0].id]: {
+            status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+          },
+        });
       });
     });
   });
