@@ -14,6 +14,7 @@ import { GraphileWorkerService } from '../graphile-worker/graphile-worker.servic
 import { bridgeRequestDTO } from '../test/mocks';
 import { bootstrapTestApp } from '../test/test-app';
 import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-head.service';
+import { BurnWIronOptions } from './interfaces/burn-wiron-options';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
 import { WIronJobsController } from './wiron.jobs.controller';
 
@@ -85,7 +86,7 @@ describe('MintWIronJobsController', () => {
       const updateHead = jest.spyOn(wIronSepoliaHeadService, 'updateHead');
       const addJob = jest
         .spyOn(graphileWorkerService, 'addJob')
-        .mockImplementationOnce(jest.fn());
+        .mockImplementation(jest.fn());
 
       const wIronMock = mock<WIron>({
         filters: {
@@ -177,11 +178,54 @@ describe('MintWIronJobsController', () => {
       expect(updateHead.mock.calls[0][0]).toEqual(mockToBlock.hash);
       expect(updateHead.mock.calls[0][1]).toEqual(mockToBlock.number);
 
-      expect(addJob).toHaveBeenCalledTimes(1);
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-      expect(addJob.mock.calls[0][0]).toBe(
+      expect(addJob).toHaveBeenCalledTimes(3);
+      expect(addJob.mock.calls[0][0]).toBe(GraphileWorkerPattern.BURN_WIRON);
+      expect(addJob.mock.calls[1][0]).toBe(GraphileWorkerPattern.BURN_WIRON);
+      expect(addJob.mock.calls[2][0]).toBe(
         GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS,
       );
+    });
+  });
+
+  describe('burn', () => {
+    it('calls burn on the WIRON smart contract', async () => {
+      const wIronMock = mock<WIron>();
+      const wIronProviderMock = mock<ethers.InfuraProvider>();
+      jest
+        .spyOn(wIronJobsController, 'connectWIron')
+        .mockImplementation(() => ({
+          contract: wIronMock,
+          provider: wIronProviderMock,
+        }));
+
+      const amount = '100';
+      const destination_address = '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+      const request = await bridgeService.upsertRequests([
+        bridgeRequestDTO({ amount, destination_address }),
+      ]);
+
+      const hash = 'faketransactionhash';
+      const wIronBurn = jest.spyOn(wIronMock, 'burn').mockImplementationOnce(
+        () =>
+          Promise.resolve({
+            hash,
+          }) as Promise<ContractTransactionResponse>,
+      );
+
+      const options: BurnWIronOptions = {
+        bridgeRequestId: request[0].id,
+        amount: BigInt(request[0].amount),
+      };
+      await wIronJobsController.burn(options);
+
+      expect(wIronBurn).toHaveBeenCalledTimes(1);
+      expect(wIronBurn).toHaveBeenCalledWith(options.amount);
+
+      const updatedRequest = await bridgeService.find(request[0].id);
+      expect(updatedRequest.status).toEqual(
+        BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
+      );
+      expect(updatedRequest.wiron_burn_transaction).toEqual(hash);
     });
   });
 });

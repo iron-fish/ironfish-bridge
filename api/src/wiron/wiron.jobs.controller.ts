@@ -15,6 +15,7 @@ import { GraphileWorkerException } from '../graphile-worker/graphile-worker-exce
 import { LoggerService } from '../logger/logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-head.service';
+import { BurnWIronOptions } from './interfaces/burn-wiron-options';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
 
 @Controller()
@@ -63,53 +64,12 @@ export class WIronJobsController {
 
     // Only query events if there is a range
     if (fromBlockHeight < toBlockHeight - 1) {
-      this.logger.debug(
-        `Refreshing blocks from height ${fromBlockHeight} to ${toBlockHeight}`,
-      );
-      const filter = contract.filters.TransferWithMetadata(
-        undefined,
-        this.config.get<string>('WIRON_DEPOSIT_ADDRESS'),
-      );
-      const events = await contract.queryFilter(
-        filter,
+      await this.upsertTransferEvents(
+        provider,
+        contract,
         fromBlockHeight,
-        // Upper bound is inclusive
-        toBlockHeight - 1,
+        toBlockHeight,
       );
-      this.logger.debug(`Processing ${events.length} bridge requests`);
-
-      const bridgeRequests = events.map((event) => {
-        let destinationAddress = event.args[3];
-        if (destinationAddress.startsWith('0x')) {
-          destinationAddress = destinationAddress.slice(2);
-        }
-
-        return {
-          source_address: event.args[0],
-          destination_address: destinationAddress,
-          amount: event.args[2].toString(),
-          asset: 'WIRON',
-          source_chain: Chain.ETHEREUM,
-          destination_chain: Chain.IRONFISH,
-          source_transaction: event.transactionHash,
-          destination_transaction: null,
-          status: BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CREATION,
-        };
-      });
-
-      const toBlock = await provider.getBlock(toBlockHeight);
-      await this.prisma.$transaction(async (prisma) => {
-        if (!toBlock || !toBlock.hash) {
-          throw new Error(`Cannot get block at height ${toBlockHeight}`);
-        }
-
-        await this.bridgeService.upsertRequests(bridgeRequests, prisma);
-        await this.wIronSepoliaHeadService.updateHead(
-          toBlock.hash,
-          toBlock.number,
-          prisma,
-        );
-      });
     }
 
     const runAt = new Date(
@@ -125,6 +85,88 @@ export class WIronJobsController {
     );
 
     return { requeue: false };
+  }
+
+  private async upsertTransferEvents(
+    provider: ethers.InfuraProvider,
+    contract: WIron,
+    fromBlockHeight: number,
+    toBlockHeight: number,
+  ): Promise<void> {
+    this.logger.debug(
+      `Refreshing blocks from height ${fromBlockHeight} to ${toBlockHeight}`,
+    );
+    const filter = contract.filters.TransferWithMetadata(
+      undefined,
+      this.config.get<string>('WIRON_DEPOSIT_ADDRESS'),
+    );
+    const events = await contract.queryFilter(
+      filter,
+      fromBlockHeight,
+      // Upper bound is inclusive
+      toBlockHeight - 1,
+    );
+    this.logger.debug(`Processing ${events.length} bridge requests`);
+
+    const bridgeRequests = events.map((event) => {
+      let destinationAddress = event.args[3];
+      if (destinationAddress.startsWith('0x')) {
+        destinationAddress = destinationAddress.slice(2);
+      }
+
+      return {
+        source_address: event.args[0],
+        destination_address: destinationAddress,
+        amount: event.args[2].toString(),
+        asset: 'WIRON',
+        source_chain: Chain.ETHEREUM,
+        destination_chain: Chain.IRONFISH,
+        source_transaction: event.transactionHash,
+        destination_transaction: null,
+        status: BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CREATION,
+      };
+    });
+
+    const toBlock = await provider.getBlock(toBlockHeight);
+    const records = await this.prisma.$transaction(async (prisma) => {
+      if (!toBlock || !toBlock.hash) {
+        throw new Error(`Cannot get block at height ${toBlockHeight}`);
+      }
+
+      const records = await this.bridgeService.upsertRequests(
+        bridgeRequests,
+        prisma,
+      );
+      await this.wIronSepoliaHeadService.updateHead(
+        toBlock.hash,
+        toBlock.number,
+        prisma,
+      );
+      return records;
+    });
+
+    for (const record of records) {
+      await this.graphileWorkerService.addJob<BurnWIronOptions>(
+        GraphileWorkerPattern.BURN_WIRON,
+        { amount: BigInt(record.amount), bridgeRequestId: record.id },
+        { jobKey: `burn_wiron_${record.id}`, queueName: 'burn_wiron' },
+      );
+    }
+  }
+
+  @MessagePattern(GraphileWorkerPattern.BURN_WIRON)
+  @UseFilters(new GraphileWorkerException())
+  async burn(options: BurnWIronOptions) {
+    const { contract } = this.connectWIron();
+
+    const result = await contract.burn(options.amount);
+    await this.bridgeService.updateRequest({
+      id: options.bridgeRequestId,
+      status: BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
+      wiron_burn_transaction: result.hash,
+    });
+
+    // TODO(rohanjadvani): Add job to poll for transaction and confirm status
   }
 
   connectWIron(): {

@@ -18,6 +18,12 @@ import { BridgeDataDTO } from './types/dto';
 export class BridgeService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async find(id: number): Promise<BridgeRequest> {
+    return this.prisma.bridgeRequest.findFirstOrThrow({
+      where: { id },
+    });
+  }
+
   async findByIds(ids: number[]): Promise<BridgeRequest[]> {
     return this.prisma.bridgeRequest.findMany({
       where: {
@@ -71,6 +77,7 @@ export class BridgeService {
     status?: BridgeRequestStatus;
     destination_transaction?: string;
     source_transaction?: string;
+    wiron_burn_transaction?: string;
   }): Promise<BridgeRequest | null> {
     return this.prisma.bridgeRequest.update({
       data: options,

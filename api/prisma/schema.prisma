@@ -17,6 +17,7 @@ model BridgeRequest {
   destination_transaction String?               @db.VarChar
   source_chain            Chain
   destination_chain       Chain
+  wiron_burn_transaction  String?               @db.VarChar
   status                  BridgeRequestStatus
   amount                  String                @db.VarChar
   failure_reason          FailureReason?
@@ -28,6 +29,7 @@ model BridgeRequest {
 
   @@index([source_address], map: "index_bridge_request_on_source_address")
   @@index([destination_address], map: "index_bridge_request_on_destination_address")
+  @@index([wiron_burn_transaction], map: "index_bridge_request_wiron_burn_transaction")
   @@index([completed_at], map: "index_bridge_requests_on_completed_at")
   @@index([started_at, completed_at], map: "index_bridge_requests_on_completed_at_and_started_at")
 }
