@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Injectable } from '@nestjs/common';
 import {
-  BridgeHead,
   BridgeRequest,
   BridgeRequestStatus,
   FailedBridgeRequest,
   FailureReason,
+  IronFishTestnetHead,
   Prisma,
 } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -103,15 +103,15 @@ export class BridgeService {
     });
   }
 
-  async updateHead(hash: string): Promise<BridgeHead> {
-    await this.prisma.bridgeHead.deleteMany();
-    return this.prisma.bridgeHead.create({
+  async updateHead(hash: string): Promise<IronFishTestnetHead> {
+    await this.prisma.ironFishTestnetHead.deleteMany();
+    return this.prisma.ironFishTestnetHead.create({
       data: { hash },
     });
   }
 
-  async getHead(): Promise<BridgeHead | null> {
-    return this.prisma.bridgeHead.findFirst();
+  async getHead(): Promise<IronFishTestnetHead | null> {
+    return this.prisma.ironFishTestnetHead.findFirst();
   }
 
   async createFailedRequest(

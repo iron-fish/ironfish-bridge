@@ -136,7 +136,7 @@ describe('AssetsController', () => {
           hash: 'fakehash2',
         });
 
-        const count = await prisma.bridgeHead.count();
+        const count = await prisma.ironFishTestnetHead.count();
         expect(count).toBe(1);
 
         const { body: getBody } = await request(app.getHttpServer())

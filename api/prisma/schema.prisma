@@ -32,6 +32,8 @@ model BridgeRequest {
   @@index([wiron_burn_transaction], map: "index_bridge_request_wiron_burn_transaction")
   @@index([completed_at], map: "index_bridge_requests_on_completed_at")
   @@index([started_at, completed_at], map: "index_bridge_requests_on_completed_at_and_started_at")
+  
+  @@map("bridge_requests")
 }
 
 model FailedBridgeRequest {
@@ -42,10 +44,13 @@ model FailedBridgeRequest {
   bridge_request    BridgeRequest? @relation(fields: [bridge_request_id], references: [id])
 
   @@index([bridge_request_id], map: "index_failed_bridge_request_on_bridge_request_id")
+  @@map("failed_bridge_requests")
 }
 
-model BridgeHead {
+model IronFishTestnetHead {
   hash String @unique @db.VarChar
+
+  @@map("iron_fish_testnet_head")
 }
 
 model WIronSepoliaHead {
