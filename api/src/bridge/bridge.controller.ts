@@ -97,8 +97,7 @@ export class BridgeController {
         GraphileWorkerPattern.MINT_WIRON,
         {
           bridgeRequest: send.id,
-          // TODO handle potential error here string -> bigint
-          amount: BigInt(request.amount),
+          amount: request.amount,
           destination: request.destination_address,
         },
       );

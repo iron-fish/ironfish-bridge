@@ -4,5 +4,5 @@
 export interface MintWIronOptions {
   bridgeRequest: number;
   destination: string;
-  amount: bigint;
+  amount: string;
 }
