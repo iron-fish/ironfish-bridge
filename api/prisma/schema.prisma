@@ -17,7 +17,6 @@ model BridgeRequest {
   destination_transaction String?               @db.VarChar
   source_chain            Chain
   destination_chain       Chain
-  wiron_burn_transaction  String?               @db.VarChar
   status                  BridgeRequestStatus
   amount                  String                @db.VarChar
   failure_reason          FailureReason?
@@ -25,6 +24,7 @@ model BridgeRequest {
   created_at              DateTime              @default(now()) @db.Timestamp(6)
   started_at              DateTime?             @db.Timestamp(6)
   updated_at              DateTime              @default(now()) @updatedAt @db.Timestamp(6)
+  wiron_burn_transaction  String?               @db.VarChar
   failures                FailedBridgeRequest[]
 
   @@index([source_address], map: "index_bridge_request_on_source_address")
@@ -38,7 +38,10 @@ model FailedBridgeRequest {
   id                Int            @id @default(autoincrement())
   bridge_request_id Int?
   failure_reason    FailureReason
+  error             String?        @db.VarChar
   bridge_request    BridgeRequest? @relation(fields: [bridge_request_id], references: [id])
+
+  @@index([bridge_request_id], map: "index_failed_bridge_request_on_bridge_request_id")
 }
 
 model BridgeHead {
@@ -64,12 +67,12 @@ enum BridgeRequestStatus {
   CREATED
   PENDING_PRETRANSFER
   PENDING_ON_DESTINATION_CHAIN
+  CONFIRMED
+  FAILED
   PENDING_WIRON_BURN_TRANSACTION_CREATION
   PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION
   PENDING_IRON_RELEASE_TRANSACTION_CREATION
   PENDING_IRON_RELEASE_TRANSACTION_CONFIRMATION
-  CONFIRMED
-  FAILED
 
   @@map("bridge_request_status")
 }
@@ -80,6 +83,7 @@ enum FailureReason {
   REQUEST_SOURCE_ADDRESS_NOT_MATCHING
   REQUEST_AMOUNT_NOT_MATCHING
   REQUEST_ASSET_NOT_MATCHING
+  WIRON_BURN_TRANSACTION_FAILED
 
   @@map("failure_reason")
 }

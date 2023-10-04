@@ -3,20 +3,25 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Controller, UseFilters } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
-import { BridgeRequestStatus, Chain } from '@prisma/client';
+import { BridgeRequestStatus, Chain, FailureReason } from '@prisma/client';
 import { ethers } from 'ethers';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { BridgeService } from '../bridge/bridge.service';
-import { WIRON_CONTRACT_ADDRESS } from '../common/constants';
+import {
+  SEPOLIA_EXPLORER_URL,
+  WIRON_CONTRACT_ADDRESS,
+} from '../common/constants';
 import { WIron, WIron__factory } from '../contracts';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { GraphileWorkerException } from '../graphile-worker/graphile-worker-exception';
+import { GraphileWorkerHandlerResponse } from '../graphile-worker/interfaces/graphile-worker-handler-response';
 import { LoggerService } from '../logger/logger.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-head.service';
 import { BurnWIronOptions } from './interfaces/burn-wiron-options';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
+import { RefreshBurnWIronTransactionStatusOptions } from './interfaces/refresh-burn-wiron-transaction-status-options';
 
 @Controller()
 export class WIronJobsController {
@@ -31,7 +36,9 @@ export class WIronJobsController {
 
   @MessagePattern(GraphileWorkerPattern.MINT_WIRON)
   @UseFilters(new GraphileWorkerException())
-  async mint(options: MintWIronOptions) {
+  async mint(
+    options: MintWIronOptions,
+  ): Promise<GraphileWorkerHandlerResponse> {
     const { contract } = this.connectWIron();
 
     const result = await contract.mint(options.destination, options.amount);
@@ -40,11 +47,13 @@ export class WIronJobsController {
       status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
       destination_transaction: result.hash,
     });
+
+    return { requeue: false };
   }
 
   @MessagePattern(GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS)
   @UseFilters(new GraphileWorkerException())
-  async refreshTransfers() {
+  async refreshTransfers(): Promise<GraphileWorkerHandlerResponse> {
     const { provider, contract } = this.connectWIron();
     const head = await provider.getBlock('latest');
     if (!head) {
@@ -156,7 +165,9 @@ export class WIronJobsController {
 
   @MessagePattern(GraphileWorkerPattern.BURN_WIRON)
   @UseFilters(new GraphileWorkerException())
-  async burn(options: BurnWIronOptions) {
+  async burn(
+    options: BurnWIronOptions,
+  ): Promise<GraphileWorkerHandlerResponse> {
     const { contract } = this.connectWIron();
 
     const result = await contract.burn(options.amount);
@@ -167,6 +178,79 @@ export class WIronJobsController {
     });
 
     // TODO(rohanjadvani): Add job to poll for transaction and confirm status
+    return { requeue: false };
+  }
+
+  @MessagePattern(GraphileWorkerPattern.REFRESH_BURN_WIRON_TRANSACTION_STATUS)
+  @UseFilters(new GraphileWorkerException())
+  async refreshBurnWIronTransactionStatus({
+    bridgeRequestId,
+  }: RefreshBurnWIronTransactionStatusOptions) {
+    const bridgeRequest = await this.bridgeService.find(bridgeRequestId);
+    if (!bridgeRequest || !bridgeRequest.wiron_burn_transaction) {
+      this.logger.error(
+        `Invalid burn refresh request for '${bridgeRequestId}'`,
+        '',
+      );
+      return { requeue: false };
+    }
+
+    const { provider } = this.connectWIron();
+    const transaction = await provider.getTransactionReceipt(
+      bridgeRequest.wiron_burn_transaction,
+    );
+    if (!transaction) {
+      this.logger.error(
+        `No burn transaction found for ${bridgeRequest.wiron_burn_transaction}`,
+        '',
+      );
+      return { requeue: false };
+    }
+
+    // Try again in a minute if still unconfirmed
+    if (
+      !transaction.blockHash ||
+      (await transaction.confirmations()) <
+        this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE')
+    ) {
+      this.logger.debug(
+        `Retrying for bridge request ${bridgeRequestId} in 60s`,
+      );
+      const runAt = new Date(new Date().getTime() + 60 * 1000);
+      await this.graphileWorkerService.addJob<RefreshBurnWIronTransactionStatusOptions>(
+        GraphileWorkerPattern.REFRESH_BURN_WIRON_TRANSACTION_STATUS,
+        { bridgeRequestId },
+        { jobKey: `refresh_burn_wiron_${bridgeRequestId}`, runAt },
+      );
+      return { requeue: false };
+    }
+
+    if (!transaction.status) {
+      this.logger.error(`Bridge request ${bridgeRequestId} failed`, '');
+      await this.prisma.$transaction(async (prisma) => {
+        const request = await this.bridgeService.updateRequest(
+          {
+            id: bridgeRequestId,
+            status: BridgeRequestStatus.FAILED,
+          },
+          prisma,
+        );
+        await this.bridgeService.createFailedRequest(
+          request,
+          FailureReason.WIRON_BURN_TRANSACTION_FAILED,
+          `Burning WIRON failed. Check ${SEPOLIA_EXPLORER_URL}/tx/${transaction.hash}`,
+          prisma,
+        );
+      });
+      return { requeue: false };
+    }
+
+    await this.bridgeService.updateRequest({
+      id: bridgeRequestId,
+      status: BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+    });
+
+    return { requeue: false };
   }
 
   connectWIron(): {

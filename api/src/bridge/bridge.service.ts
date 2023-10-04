@@ -18,7 +18,13 @@ import { BridgeDataDTO } from './types/dto';
 export class BridgeService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async find(id: number): Promise<BridgeRequest> {
+  async find(id: number): Promise<BridgeRequest | null> {
+    return this.prisma.bridgeRequest.findFirst({
+      where: { id },
+    });
+  }
+
+  async findOrThrow(id: number): Promise<BridgeRequest> {
     return this.prisma.bridgeRequest.findFirstOrThrow({
       where: { id },
     });
@@ -39,47 +45,57 @@ export class BridgeService {
     client?: BasePrismaClient,
   ): Promise<BridgeRequest[]> {
     const results = [];
-    const prisma = client ?? this.prisma;
-
     for (const request of requests) {
-      let result;
-
-      if (!request.source_transaction) {
-        result = await prisma.bridgeRequest.create({
-          data: {
-            ...request,
-          },
-        });
-      } else {
-        result = await prisma.bridgeRequest.upsert({
-          create: {
-            ...request,
-          },
-          update: {
-            source_transaction: request.source_transaction,
-            destination_transaction: request.destination_transaction,
-            status: request.status,
-          },
-          where: {
-            source_transaction: request.source_transaction,
-          },
-        });
-      }
-
-      results.push(result);
+      results.push(await this.upsertRequest(request, client));
     }
-
     return results;
   }
 
-  async updateRequest(options: {
-    id: number;
-    status?: BridgeRequestStatus;
-    destination_transaction?: string;
-    source_transaction?: string;
-    wiron_burn_transaction?: string;
-  }): Promise<BridgeRequest | null> {
-    return this.prisma.bridgeRequest.update({
+  async upsertRequest(
+    request: BridgeDataDTO,
+    client?: BasePrismaClient,
+  ): Promise<BridgeRequest> {
+    const prisma = client ?? this.prisma;
+    let result;
+
+    if (!request.source_transaction) {
+      result = await prisma.bridgeRequest.create({
+        data: {
+          ...request,
+        },
+      });
+    } else {
+      result = await prisma.bridgeRequest.upsert({
+        create: {
+          ...request,
+        },
+        update: {
+          source_transaction: request.source_transaction,
+          destination_transaction: request.destination_transaction,
+          status: request.status,
+          wiron_burn_transaction: request.wiron_burn_transaction,
+        },
+        where: {
+          source_transaction: request.source_transaction,
+        },
+      });
+    }
+
+    return result;
+  }
+
+  async updateRequest(
+    options: {
+      id: number;
+      status?: BridgeRequestStatus;
+      destination_transaction?: string;
+      source_transaction?: string;
+      wiron_burn_transaction?: string;
+    },
+    client?: BasePrismaClient,
+  ): Promise<BridgeRequest | null> {
+    const prisma = client ?? this.prisma;
+    return prisma.bridgeRequest.update({
       data: options,
       where: {
         id: options.id,
@@ -100,15 +116,19 @@ export class BridgeService {
 
   async createFailedRequest(
     request: BridgeRequest | null,
-    failure_reason: FailureReason,
+    failureReason: FailureReason,
+    error?: string,
+    client?: BasePrismaClient,
   ): Promise<FailedBridgeRequest> {
+    const prisma = client ?? this.prisma;
     const bridge_request = request
       ? { connect: { id: request.id } }
       : undefined;
-    return this.prisma.failedBridgeRequest.create({
+    return prisma.failedBridgeRequest.create({
       data: {
         bridge_request,
-        failure_reason,
+        error,
+        failure_reason: failureReason,
       },
     });
   }
