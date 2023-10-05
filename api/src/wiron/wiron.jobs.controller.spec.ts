@@ -74,7 +74,7 @@ describe('MintWIronJobsController', () => {
       expect(wIronMint).toHaveBeenCalledTimes(1);
       expect(wIronMint).toHaveBeenCalledWith(
         options.destination,
-        options.amount,
+        BigInt(options.amount),
       );
 
       const updatedRequest = await bridgeService.findByIds([request[0].id]);
