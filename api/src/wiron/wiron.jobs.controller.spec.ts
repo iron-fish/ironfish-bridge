@@ -67,14 +67,14 @@ describe('MintWIronJobsController', () => {
       const options: MintWIronOptions = {
         bridgeRequest: request[0].id,
         destination: request[0].destination_address,
-        amount: BigInt(request[0].amount),
+        amount: request[0].amount,
       };
       await wIronJobsController.mint(options);
 
       expect(wIronMint).toHaveBeenCalledTimes(1);
       expect(wIronMint).toHaveBeenCalledWith(
         options.destination,
-        options.amount,
+        BigInt(options.amount),
       );
 
       const updatedRequest = await bridgeService.findByIds([request[0].id]);

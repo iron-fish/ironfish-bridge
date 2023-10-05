@@ -41,7 +41,11 @@ export class WIronJobsController {
   ): Promise<GraphileWorkerHandlerResponse> {
     const { contract } = this.connectWIron();
 
-    const result = await contract.mint(options.destination, options.amount);
+    const result = await contract.mint(
+      options.destination,
+      // TODO handle potential error here string -> bigint
+      BigInt(options.amount),
+    );
     await this.bridgeService.updateRequest({
       id: options.bridgeRequest,
       status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
