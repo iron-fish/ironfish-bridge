@@ -8,6 +8,7 @@ import { ethers } from 'ethers';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { BridgeService } from '../bridge/bridge.service';
 import {
+  SEPOLIA_BLOCK_TIME_MS,
   SEPOLIA_EXPLORER_URL,
   WIRON_CONTRACT_ADDRESS,
 } from '../common/constants';
@@ -53,7 +54,17 @@ export class WIronJobsController {
       destination_transaction: result.hash,
     });
 
-    // TODO(rohanjadvani): Enqueue job to confirm
+    const runAt = new Date(
+      new Date().getTime() +
+        // Use an additional block as a buffer
+        (this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE') + 1) *
+          SEPOLIA_BLOCK_TIME_MS,
+    );
+    await this.graphileWorkerService.addJob<RefreshMintWIronTransactionStatusOptions>(
+      GraphileWorkerPattern.REFRESH_MINT_WIRON_TRANSACTION_STATUS,
+      { bridgeRequestId: options.bridgeRequest },
+      { jobKey: `refresh_mint_wiron_${options.bridgeRequest}`, runAt },
+    );
 
     return { requeue: false };
   }
@@ -184,7 +195,18 @@ export class WIronJobsController {
       wiron_burn_transaction: result.hash,
     });
 
-    // TODO(rohanjadvani): Add job to poll for transaction and confirm status
+    const runAt = new Date(
+      new Date().getTime() +
+        // Use an additional block as a buffer
+        (this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE') + 1) *
+          SEPOLIA_BLOCK_TIME_MS,
+    );
+    await this.graphileWorkerService.addJob<RefreshBurnWIronTransactionStatusOptions>(
+      GraphileWorkerPattern.REFRESH_BURN_WIRON_TRANSACTION_STATUS,
+      { bridgeRequestId: options.bridgeRequestId },
+      { jobKey: `refresh_burn_wiron_${options.bridgeRequestId}`, runAt },
+    );
+
     return { requeue: false };
   }
 

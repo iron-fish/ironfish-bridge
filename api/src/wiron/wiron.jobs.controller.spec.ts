@@ -64,6 +64,10 @@ describe('MintWIronJobsController', () => {
           }) as Promise<ContractTransactionResponse>,
       );
 
+      const addJob = jest
+        .spyOn(graphileWorkerService, 'addJob')
+        .mockImplementation(jest.fn());
+
       const options: MintWIronOptions = {
         bridgeRequest: request[0].id,
         destination: request[0].destination_address,
@@ -82,6 +86,11 @@ describe('MintWIronJobsController', () => {
         BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CONFIRMATION,
       );
       expect(updatedRequest[0].destination_transaction).toBeTruthy();
+
+      expect(addJob).toHaveBeenCalledTimes(1);
+      expect(addJob.mock.calls[0][0]).toEqual(
+        GraphileWorkerPattern.REFRESH_MINT_WIRON_TRANSACTION_STATUS,
+      );
     });
   });
 
@@ -217,6 +226,10 @@ describe('MintWIronJobsController', () => {
           }) as Promise<ContractTransactionResponse>,
       );
 
+      const addJob = jest
+        .spyOn(graphileWorkerService, 'addJob')
+        .mockImplementation(jest.fn());
+
       const options: BurnWIronOptions = {
         bridgeRequestId: request[0].id,
         amount: BigInt(request[0].amount),
@@ -231,6 +244,11 @@ describe('MintWIronJobsController', () => {
         BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
       );
       expect(updatedRequest.wiron_burn_transaction).toEqual(hash);
+
+      expect(addJob).toHaveBeenCalledTimes(1);
+      expect(addJob.mock.calls[0][0]).toEqual(
+        GraphileWorkerPattern.REFRESH_BURN_WIRON_TRANSACTION_STATUS,
+      );
     });
   });
 
