@@ -361,8 +361,7 @@ describe('MintWIronJobsController', () => {
           bridgeRequestDTO({
             amount,
             destination_address,
-            status:
-              BridgeRequestStatus.CREATED,
+            status: BridgeRequestStatus.CREATED,
             destination_transaction: '0xmint',
           }),
         );
