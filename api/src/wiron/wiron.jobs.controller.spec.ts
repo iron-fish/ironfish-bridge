@@ -392,7 +392,7 @@ describe('MintWIronJobsController', () => {
     });
 
     describe('when the transaction is confirmed', () => {
-      it('updates the status to pending IRON creation', async () => {
+      it('updates the status to confirmed', async () => {
         const wIronMock = mock<WIron>();
         const wIronProviderMock = mock<ethers.InfuraProvider>();
         jest
