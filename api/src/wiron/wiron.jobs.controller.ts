@@ -49,7 +49,11 @@ export class WIronJobsController {
       destination_transaction: result.hash,
     });
 
-    // TODO(rohanjadvani): Enqueue job to confirm
+    await this.graphileWorkerService.addJob<RefreshMintWIronTransactionStatusOptions>(
+      GraphileWorkerPattern.REFRESH_MINT_WIRON_TRANSACTION_STATUS,
+      { bridgeRequestId: options.bridgeRequest },
+      { jobKey: `refresh_mint_wiron_${options.bridgeRequest}` },
+    );
 
     return { requeue: false };
   }
@@ -180,7 +184,12 @@ export class WIronJobsController {
       wiron_burn_transaction: result.hash,
     });
 
-    // TODO(rohanjadvani): Add job to poll for transaction and confirm status
+    await this.graphileWorkerService.addJob<RefreshBurnWIronTransactionStatusOptions>(
+      GraphileWorkerPattern.REFRESH_BURN_WIRON_TRANSACTION_STATUS,
+      { bridgeRequestId: options.bridgeRequestId },
+      { jobKey: `refresh_burn_wiron_${options.bridgeRequestId}` },
+    );
+
     return { requeue: false };
   }
 
