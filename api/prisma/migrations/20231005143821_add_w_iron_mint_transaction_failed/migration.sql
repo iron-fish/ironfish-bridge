@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "failure_reason" ADD VALUE 'WIRON_MINT_TRANSACTION_FAILED';

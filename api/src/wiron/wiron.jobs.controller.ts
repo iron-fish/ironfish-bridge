@@ -22,6 +22,7 @@ import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-hea
 import { BurnWIronOptions } from './interfaces/burn-wiron-options';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
 import { RefreshBurnWIronTransactionStatusOptions } from './interfaces/refresh-burn-wiron-transaction-status-options';
+import { RefreshMintWIronTransactionStatusOptions } from './interfaces/refresh-mint-wiron-transaction-status-options';
 
 @Controller()
 export class WIronJobsController {
@@ -44,9 +45,11 @@ export class WIronJobsController {
     const result = await contract.mint(options.destination, options.amount);
     await this.bridgeService.updateRequest({
       id: options.bridgeRequest,
-      status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+      status: BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CONFIRMATION,
       destination_transaction: result.hash,
     });
+
+    // TODO(rohanjadvani): Enqueue job to confirm
 
     return { requeue: false };
   }
@@ -248,6 +251,78 @@ export class WIronJobsController {
     await this.bridgeService.updateRequest({
       id: bridgeRequestId,
       status: BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+    });
+
+    return { requeue: false };
+  }
+
+  @MessagePattern(GraphileWorkerPattern.REFRESH_MINT_WIRON_TRANSACTION_STATUS)
+  @UseFilters(new GraphileWorkerException())
+  async refreshMintWIronTransactionStatus({
+    bridgeRequestId,
+  }: RefreshMintWIronTransactionStatusOptions) {
+    const bridgeRequest = await this.bridgeService.find(bridgeRequestId);
+    if (!bridgeRequest || !bridgeRequest.destination_transaction) {
+      this.logger.error(
+        `Invalid mint refresh request for '${bridgeRequestId}'`,
+        '',
+      );
+      return { requeue: false };
+    }
+
+    const { provider } = this.connectWIron();
+    const transaction = await provider.getTransactionReceipt(
+      bridgeRequest.destination_transaction,
+    );
+    if (!transaction) {
+      this.logger.error(
+        `No mint transaction found for ${bridgeRequest.destination_transaction}`,
+        '',
+      );
+      return { requeue: false };
+    }
+
+    // Try again in a minute if still unconfirmed
+    if (
+      !transaction.blockHash ||
+      (await transaction.confirmations()) <
+        this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE')
+    ) {
+      this.logger.debug(
+        `Retrying for bridge request ${bridgeRequestId} in 60s`,
+      );
+      const runAt = new Date(new Date().getTime() + 60 * 1000);
+      await this.graphileWorkerService.addJob<RefreshMintWIronTransactionStatusOptions>(
+        GraphileWorkerPattern.REFRESH_MINT_WIRON_TRANSACTION_STATUS,
+        { bridgeRequestId },
+        { jobKey: `refresh_mint_wiron_${bridgeRequestId}`, runAt },
+      );
+      return { requeue: false };
+    }
+
+    if (!transaction.status) {
+      this.logger.error(`Bridge request ${bridgeRequestId} failed`, '');
+      await this.prisma.$transaction(async (prisma) => {
+        const request = await this.bridgeService.updateRequest(
+          {
+            id: bridgeRequestId,
+            status: BridgeRequestStatus.FAILED,
+          },
+          prisma,
+        );
+        await this.bridgeService.createFailedRequest(
+          request,
+          FailureReason.WIRON_MINT_TRANSACTION_FAILED,
+          `Minting WIRON failed. Check ${SEPOLIA_EXPLORER_URL}/tx/${transaction.hash}`,
+          prisma,
+        );
+      });
+      return { requeue: false };
+    }
+
+    await this.bridgeService.updateRequest({
+      id: bridgeRequestId,
+      status: BridgeRequestStatus.CONFIRMED,
     });
 
     return { requeue: false };

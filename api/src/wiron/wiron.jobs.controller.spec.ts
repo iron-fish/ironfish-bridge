@@ -79,7 +79,7 @@ describe('MintWIronJobsController', () => {
 
       const updatedRequest = await bridgeService.findByIds([request[0].id]);
       expect(updatedRequest[0].status).toEqual(
-        BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+        BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CONFIRMATION,
       );
       expect(updatedRequest[0].destination_transaction).toBeTruthy();
     });
@@ -231,6 +231,213 @@ describe('MintWIronJobsController', () => {
         BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
       );
       expect(updatedRequest.wiron_burn_transaction).toEqual(hash);
+    });
+  });
+
+  describe('refreshMintWIronTransactionStatus', () => {
+    describe('if a transaction is not on a block', () => {
+      it('tries again', async () => {
+        const wIronMock = mock<WIron>();
+        const wIronProviderMock = mock<ethers.InfuraProvider>();
+        jest
+          .spyOn(wIronJobsController, 'connectWIron')
+          .mockImplementation(() => ({
+            contract: wIronMock,
+            provider: wIronProviderMock,
+          }));
+
+        const amount = '100';
+        const destination_address =
+          '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+        const request = await bridgeService.upsertRequest(
+          bridgeRequestDTO({
+            amount,
+            destination_address,
+            status: BridgeRequestStatus.CREATED,
+            destination_transaction: '0xmint',
+          }),
+        );
+
+        const addJob = jest
+          .spyOn(graphileWorkerService, 'addJob')
+          .mockImplementation(jest.fn());
+
+        const mockTransactionReceipt: TransactionReceipt = {
+          blockHash: null,
+        } as unknown as TransactionReceipt;
+        jest
+          .spyOn(wIronProviderMock, 'getTransactionReceipt')
+          .mockImplementationOnce(() =>
+            Promise.resolve(mockTransactionReceipt),
+          );
+
+        const { requeue } =
+          await wIronJobsController.refreshMintWIronTransactionStatus({
+            bridgeRequestId: request.id,
+          });
+
+        expect(requeue).toBe(false);
+        expect(addJob).toHaveBeenCalledTimes(1);
+        expect(addJob.mock.calls[0][0]).toBe(
+          GraphileWorkerPattern.REFRESH_MINT_WIRON_TRANSACTION_STATUS,
+        );
+        expect(addJob.mock.calls[0][1]).toEqual({
+          bridgeRequestId: request.id,
+        });
+      });
+    });
+
+    describe('if a transaction is unconfirmed', () => {
+      it('tries again', async () => {
+        const wIronMock = mock<WIron>();
+        const wIronProviderMock = mock<ethers.InfuraProvider>();
+        jest
+          .spyOn(wIronJobsController, 'connectWIron')
+          .mockImplementation(() => ({
+            contract: wIronMock,
+            provider: wIronProviderMock,
+          }));
+
+        const amount = '100';
+        const destination_address =
+          '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+        const request = await bridgeService.upsertRequest(
+          bridgeRequestDTO({
+            amount,
+            destination_address,
+            status: BridgeRequestStatus.CREATED,
+            destination_transaction: '0xmint',
+          }),
+        );
+
+        const addJob = jest
+          .spyOn(graphileWorkerService, 'addJob')
+          .mockImplementation(jest.fn());
+
+        const mockTransactionReceipt: TransactionReceipt = {
+          blockHash: 'blockHash',
+          confirmations: jest.fn(),
+        } as unknown as TransactionReceipt;
+        jest
+          .spyOn(wIronProviderMock, 'getTransactionReceipt')
+          .mockImplementationOnce(() =>
+            Promise.resolve(mockTransactionReceipt),
+          );
+        jest
+          .spyOn(mockTransactionReceipt, 'confirmations')
+          .mockImplementationOnce(() => Promise.resolve(0));
+
+        const { requeue } =
+          await wIronJobsController.refreshMintWIronTransactionStatus({
+            bridgeRequestId: request.id,
+          });
+
+        expect(requeue).toBe(false);
+        expect(addJob).toHaveBeenCalledTimes(1);
+        expect(addJob.mock.calls[0][0]).toBe(
+          GraphileWorkerPattern.REFRESH_MINT_WIRON_TRANSACTION_STATUS,
+        );
+        expect(addJob.mock.calls[0][1]).toEqual({
+          bridgeRequestId: request.id,
+        });
+      });
+    });
+
+    describe('if a transaction is failed', () => {
+      it('updates the status to failed', async () => {
+        const wIronMock = mock<WIron>();
+        const wIronProviderMock = mock<ethers.InfuraProvider>();
+        jest
+          .spyOn(wIronJobsController, 'connectWIron')
+          .mockImplementation(() => ({
+            contract: wIronMock,
+            provider: wIronProviderMock,
+          }));
+
+        const amount = '100';
+        const destination_address =
+          '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+        const request = await bridgeService.upsertRequest(
+          bridgeRequestDTO({
+            amount,
+            destination_address,
+            status:
+              BridgeRequestStatus.CREATED,
+            destination_transaction: '0xmint',
+          }),
+        );
+
+        const mockTransactionReceipt: TransactionReceipt = {
+          blockHash: 'blockHash',
+          status: 0,
+          confirmations: jest.fn(),
+        } as unknown as TransactionReceipt;
+        jest
+          .spyOn(wIronProviderMock, 'getTransactionReceipt')
+          .mockImplementationOnce(() =>
+            Promise.resolve(mockTransactionReceipt),
+          );
+        jest
+          .spyOn(mockTransactionReceipt, 'confirmations')
+          .mockImplementationOnce(() => Promise.resolve(1000));
+
+        const { requeue } =
+          await wIronJobsController.refreshMintWIronTransactionStatus({
+            bridgeRequestId: request.id,
+          });
+        expect(requeue).toBe(false);
+
+        const updatedRequest = await bridgeService.findOrThrow(request.id);
+        expect(updatedRequest.status).toBe(BridgeRequestStatus.FAILED);
+      });
+    });
+
+    describe('when the transaction is confirmed', () => {
+      it('updates the status to pending IRON creation', async () => {
+        const wIronMock = mock<WIron>();
+        const wIronProviderMock = mock<ethers.InfuraProvider>();
+        jest
+          .spyOn(wIronJobsController, 'connectWIron')
+          .mockImplementation(() => ({
+            contract: wIronMock,
+            provider: wIronProviderMock,
+          }));
+
+        const amount = '100';
+        const destination_address =
+          '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+        const request = await bridgeService.upsertRequest(
+          bridgeRequestDTO({
+            amount,
+            destination_address,
+            status: BridgeRequestStatus.CREATED,
+            destination_transaction: '0xmint',
+          }),
+        );
+
+        const mockTransactionReceipt: TransactionReceipt = {
+          blockHash: 'blockHash',
+          status: 1,
+          confirmations: jest.fn(),
+        } as unknown as TransactionReceipt;
+        jest
+          .spyOn(wIronProviderMock, 'getTransactionReceipt')
+          .mockImplementationOnce(() =>
+            Promise.resolve(mockTransactionReceipt),
+          );
+        jest
+          .spyOn(mockTransactionReceipt, 'confirmations')
+          .mockImplementationOnce(() => Promise.resolve(1000));
+
+        const { requeue } =
+          await wIronJobsController.refreshMintWIronTransactionStatus({
+            bridgeRequestId: request.id,
+          });
+        expect(requeue).toBe(false);
+
+        const updatedRequest = await bridgeService.findOrThrow(request.id);
+        expect(updatedRequest.status).toBe(BridgeRequestStatus.CONFIRMED);
+      });
     });
   });
 
