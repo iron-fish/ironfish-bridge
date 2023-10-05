@@ -28,8 +28,7 @@
   ],
   "exclude": [
     "build",
-    "node_modules",
-    "src/**/*.spec.*"
+    "node_modules"
   ],
 }
 
