@@ -5,6 +5,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   HttpStatus,
   Post,
   Query,
@@ -46,7 +47,8 @@ export class BridgeController {
   ) {}
 
   @UseGuards(ApiKeyGuard)
-  @Get('retrieve')
+  @Post('retrieve')
+  @HttpCode(200)
   async retrieve(
     @Body(
       new ValidationPipe({
