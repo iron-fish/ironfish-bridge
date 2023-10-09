@@ -77,7 +77,8 @@ export class BridgeController {
     )
     { sends }: { sends: BridgeSendRequestDTO[] },
   ): Promise<BridgeSendResponseDTO> {
-    const requests = await this.bridgeService.findByIds(sends.map((s) => s.id));
+    const ids = sends.map((s) => s.id).filter((x) => !!x);
+    const requests = await this.bridgeService.findByIds(ids);
     const response: BridgeSendResponseDTO = {};
     for (const send of sends) {
       const request = requests.find((r) => r.id === send.id) ?? null;
