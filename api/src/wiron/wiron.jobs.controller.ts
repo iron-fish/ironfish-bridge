@@ -175,7 +175,7 @@ export class WIronJobsController {
     for (const record of records) {
       await this.graphileWorkerService.addJob<BurnWIronOptions>(
         GraphileWorkerPattern.BURN_WIRON,
-        { amount: BigInt(record.amount), bridgeRequestId: record.id },
+        { amount: record.amount, bridgeRequestId: record.id },
         { jobKey: `burn_wiron_${record.id}`, queueName: 'burn_wiron' },
       );
     }
