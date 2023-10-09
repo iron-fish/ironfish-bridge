@@ -232,7 +232,7 @@ describe('MintWIronJobsController', () => {
 
       const options: BurnWIronOptions = {
         bridgeRequestId: request[0].id,
-        amount: BigInt(request[0].amount),
+        amount: request[0].amount,
       };
       await wIronJobsController.burn(options);
 

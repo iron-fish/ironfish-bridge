@@ -175,7 +175,7 @@ export class WIronJobsController {
     for (const record of records) {
       await this.graphileWorkerService.addJob<BurnWIronOptions>(
         GraphileWorkerPattern.BURN_WIRON,
-        { amount: BigInt(record.amount), bridgeRequestId: record.id },
+        { amount: record.amount, bridgeRequestId: record.id },
         { jobKey: `burn_wiron_${record.id}`, queueName: 'burn_wiron' },
       );
     }
@@ -188,7 +188,7 @@ export class WIronJobsController {
   ): Promise<GraphileWorkerHandlerResponse> {
     const { contract } = this.connectWIron();
 
-    const result = await contract.burn(options.amount);
+    const result = await contract.burn(BigInt(options.amount));
     await this.bridgeService.updateRequest({
       id: options.bridgeRequestId,
       status: BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
