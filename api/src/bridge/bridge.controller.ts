@@ -21,8 +21,6 @@ import { GraphileWorkerService } from '../graphile-worker/graphile-worker.servic
 import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
 import { BridgeService } from './bridge.service';
 import {
-  BridgeCreateDTO,
-  BridgeDataDTO,
   BridgeRetrieveDTO,
   BridgeSendRequestDTO,
   BridgeSendResponseDTO,
