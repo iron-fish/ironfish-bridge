@@ -53,9 +53,13 @@ describe('MintWIronJobsController', () => {
 
       const amount = '100';
       const destination_address = '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
-      const request = await bridgeService.upsertRequests([
-        bridgeRequestDTO({ amount, destination_address }),
-      ]);
+      const request = await bridgeService.upsertRequest(
+        bridgeRequestDTO({
+          amount,
+          destination_address,
+          status: BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION,
+        }),
+      );
       jest.spyOn(WIron__factory, 'connect').mockImplementation(() => wIronMock);
       const wIronMint = jest.spyOn(wIronMock, 'mint').mockImplementationOnce(
         () =>
@@ -69,23 +73,21 @@ describe('MintWIronJobsController', () => {
         .mockImplementation(jest.fn());
 
       const options: MintWIronOptions = {
-        bridgeRequest: request[0].id,
-        destination: request[0].destination_address,
-        amount: request[0].amount,
+        bridgeRequest: request.id,
       };
       await wIronJobsController.mint(options);
 
       expect(wIronMint).toHaveBeenCalledTimes(1);
       expect(wIronMint).toHaveBeenCalledWith(
-        options.destination,
-        BigInt(options.amount),
+        request.destination_address,
+        BigInt(request.amount),
       );
 
-      const updatedRequest = await bridgeService.findByIds([request[0].id]);
-      expect(updatedRequest[0].status).toEqual(
+      const updatedRequest = await bridgeService.findOrThrow(request.id);
+      expect(updatedRequest.status).toEqual(
         BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CONFIRMATION,
       );
-      expect(updatedRequest[0].destination_transaction).toBeTruthy();
+      expect(updatedRequest.destination_transaction).toBeTruthy();
 
       expect(addJob).toHaveBeenCalledTimes(1);
       expect(addJob.mock.calls[0][0]).toEqual(
@@ -237,7 +239,7 @@ describe('MintWIronJobsController', () => {
       await wIronJobsController.burn(options);
 
       expect(wIronBurn).toHaveBeenCalledTimes(1);
-      expect(wIronBurn).toHaveBeenCalledWith(options.amount);
+      expect(wIronBurn).toHaveBeenCalledWith(BigInt(options.amount));
 
       const updatedRequest = await bridgeService.findOrThrow(request[0].id);
       expect(updatedRequest.status).toEqual(

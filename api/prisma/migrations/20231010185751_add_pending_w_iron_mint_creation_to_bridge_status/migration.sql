@@ -1,0 +1,2 @@
+-- AlterEnum
+ALTER TYPE "bridge_request_status" ADD VALUE 'PENDING_WIRON_MINT_TRANSACTION_CREATION';

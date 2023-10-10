@@ -10,7 +10,7 @@ import {
   it,
 } from '@jest/globals';
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { BridgeRequestStatus, Chain, FailureReason } from '@prisma/client';
+import { BridgeRequestStatus, Chain } from '@prisma/client';
 import assert from 'assert';
 import request from 'supertest';
 import { ApiConfigService } from '../api-config/api-config.service';
@@ -21,7 +21,7 @@ import { bootstrapTestApp } from '../test/test-app';
 import { BridgeService } from './bridge.service';
 import { BridgeSendRequestDTO, UpdateWIronRequestDTO } from './types/dto';
 
-describe('AssetsController', () => {
+describe('BridgeController', () => {
   let app: INestApplication;
   let prisma: PrismaService;
   let config: ApiConfigService;
@@ -51,29 +51,6 @@ describe('AssetsController', () => {
     await prisma.bridgeRequest.deleteMany({});
   });
 
-  describe('POST /bridge/create', () => {
-    describe('when data is posted to endpoint', () => {
-      it('is successful creates record and returns fk', async () => {
-        const source_address = '11111111111111111111111111';
-        const data = bridgeRequestDTO({ source_address });
-        const { body } = await request(app.getHttpServer())
-          .post('/bridge/create')
-          .set('Authorization', `Bearer ${API_KEY}`)
-          .send({ requests: [data] })
-          .expect(HttpStatus.CREATED);
-
-        const entry = await prisma.bridgeRequest.findFirst({
-          where: { source_address: { equals: source_address } },
-        });
-        assert.ok(entry);
-
-        expect(body).toMatchObject({
-          [source_address]: entry.id,
-        });
-      });
-    });
-  });
-
   describe('POST /bridge/retrieve', () => {
     describe('when data is requested by id', () => {
       it('is successfully returns if fk is in db, null if not', async () => {
@@ -98,25 +75,6 @@ describe('AssetsController', () => {
     });
   });
 
-  async function expectedSendFailure(
-    send: BridgeSendRequestDTO,
-    failureReason: FailureReason,
-  ) {
-    const response = await request(app.getHttpServer())
-      .post('/bridge/send')
-      .set('Authorization', `Bearer ${API_KEY}`)
-      .send({
-        sends: [send],
-      })
-      .expect(HttpStatus.CREATED);
-
-    expect(response.body).toMatchObject({
-      [send.id]: {
-        status: BridgeRequestStatus.FAILED,
-        failureReason,
-      },
-    });
-  }
   describe('POST /bridge/head', () => {
     describe('updates or creates head for tracking sync progress', () => {
       it('creates then updates head', async () => {
@@ -150,121 +108,40 @@ describe('AssetsController', () => {
   });
 
   describe('POST /bridge/send', () => {
-    describe('failure cases', () => {
-      it('nonexistent request id fails', async () => {
-        const send: BridgeSendRequestDTO = {
-          id: 123132132,
-          source_transaction: '123123',
-          amount: '100',
-          asset: 'asdasfsdafdsafdsa',
-          source_address: '11111111111111111111111111',
-        };
-        await expectedSendFailure(send, FailureReason.REQUEST_NON_EXISTENT);
-        expect(true).toBe(true);
-      });
+    it('updates the request and initiates transfer via smartcontact', async () => {
+      const dto = bridgeRequestDTO({});
 
-      it('invalid status fails', async () => {
-        const dto = bridgeRequestDTO({
-          status: BridgeRequestStatus.PENDING_PRETRANSFER,
-        });
-        const bridgeRequest = await bridgeService.upsertRequests([dto]);
-        const send: BridgeSendRequestDTO = {
-          ...dto,
-          source_transaction: dto.source_transaction || '123123',
-          id: bridgeRequest[0].id,
-        };
-        await expectedSendFailure(send, FailureReason.REQUEST_INVALID_STATUS);
-        expect(true).toBe(true);
-      });
+      const addJobMock = jest
+        .spyOn(graphileWorkerService, 'addJob')
+        .mockImplementationOnce(jest.fn());
 
-      it('non matching source address fails', async () => {
-        const dto = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.upsertRequests([dto]);
-        const send: BridgeSendRequestDTO = {
-          ...dto,
-          source_transaction: dto.source_transaction || '123123',
-          source_address: 'some different address, not the one in db',
-          id: bridgeRequest[0].id,
-        };
-        await expectedSendFailure(
-          send,
-          FailureReason.REQUEST_SOURCE_ADDRESS_NOT_MATCHING,
-        );
-        expect(true).toBe(true);
-      });
+      const send: BridgeSendRequestDTO = {
+        ...dto,
+        source_transaction: dto.source_transaction,
+      };
 
-      it('asset id does not match created entry', async () => {
-        const dto = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.upsertRequests([dto]);
-        const send: BridgeSendRequestDTO = {
-          ...dto,
-          source_transaction: dto.source_transaction || '123123',
-          asset: 'some different address, not the one in db',
-          id: bridgeRequest[0].id,
-        };
-        await expectedSendFailure(
-          send,
-          FailureReason.REQUEST_ASSET_NOT_MATCHING,
-        );
-        expect(true).toBe(true);
-      });
+      const response = await request(app.getHttpServer())
+        .post('/bridge/send')
+        .set('Authorization', `Bearer ${API_KEY}`)
+        .send({
+          sends: [send],
+        })
+        .expect(HttpStatus.CREATED);
 
-      it('amount does not match created entry', async () => {
-        const dto = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.upsertRequests([dto]);
-        const send: BridgeSendRequestDTO = {
-          ...dto,
-          source_transaction: dto.source_transaction || '123123',
-          amount: '42069',
-          id: bridgeRequest[0].id,
-        };
-        await expectedSendFailure(
-          send,
-          FailureReason.REQUEST_AMOUNT_NOT_MATCHING,
-        );
-        expect(true).toBe(true);
-      });
-    });
+      expect(addJobMock).toHaveBeenCalledTimes(1);
 
-    describe('success case', () => {
-      it('updates the request and initiates transfer via smartcontact', async () => {
-        const dto = bridgeRequestDTO({});
-        const bridgeRequest = await bridgeService.upsertRequests([
-          { ...dto, status: BridgeRequestStatus.CREATED },
-        ]);
+      const bridgeRequest = await bridgeService.findBySourceTransaction(
+        dto.source_transaction,
+      );
+      assert.ok(bridgeRequest);
+      expect(bridgeRequest.status).toBe(
+        BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION,
+      );
 
-        const addJobMock = jest
-          .spyOn(graphileWorkerService, 'addJob')
-          .mockImplementationOnce(jest.fn());
-
-        const send: BridgeSendRequestDTO = {
-          ...dto,
-          source_transaction: dto.source_transaction || '123123',
-          id: bridgeRequest[0].id,
-        };
-
-        const response = await request(app.getHttpServer())
-          .post('/bridge/send')
-          .set('Authorization', `Bearer ${API_KEY}`)
-          .send({
-            sends: [send],
-          })
-          .expect(HttpStatus.CREATED);
-
-        expect(addJobMock).toHaveBeenCalledTimes(1);
-        const updatedRequest = await bridgeService.findByIds([
-          bridgeRequest[0].id,
-        ]);
-
-        expect(updatedRequest[0].status).toBe(
-          BridgeRequestStatus.PENDING_PRETRANSFER,
-        );
-
-        expect(response.body).toMatchObject({
-          [bridgeRequest[0].id]: {
-            status: BridgeRequestStatus.PENDING_PRETRANSFER,
-          },
-        });
+      expect(response.body).toMatchObject({
+        [bridgeRequest.id]: {
+          status: BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION,
+        },
       });
     });
   });
@@ -299,7 +176,7 @@ describe('AssetsController', () => {
             asset: 'IRON',
             source_address: 'source',
             destination_address: 'destination',
-            source_transaction: null,
+            source_transaction: 'source_transaction0',
             destination_transaction: null,
             wiron_burn_transaction: null,
             source_chain: Chain.ETHEREUM,
@@ -317,7 +194,7 @@ describe('AssetsController', () => {
             asset: 'IRON',
             source_address: 'source',
             destination_address: 'destination',
-            source_transaction: null,
+            source_transaction: 'source_transaction',
             destination_transaction: null,
             wiron_burn_transaction: null,
             source_chain: Chain.ETHEREUM,
