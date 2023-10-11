@@ -13,7 +13,7 @@ model BridgeRequest {
   asset                   String                @db.VarChar
   source_address          String                @db.VarChar
   destination_address     String                @db.VarChar
-  source_transaction      String?               @unique @db.VarChar
+  source_transaction      String                @unique @db.VarChar
   destination_transaction String?               @db.VarChar
   source_chain            Chain
   destination_chain       Chain
@@ -74,6 +74,7 @@ enum BridgeRequestStatus {
   PENDING_ON_DESTINATION_CHAIN
   CONFIRMED
   FAILED
+  PENDING_WIRON_MINT_TRANSACTION_CREATION
   PENDING_WIRON_MINT_TRANSACTION_CONFIRMATION
   PENDING_WIRON_BURN_TRANSACTION_CREATION
   PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION

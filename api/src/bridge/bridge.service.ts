@@ -40,6 +40,16 @@ export class BridgeService {
     });
   }
 
+  async findBySourceTransaction(
+    sourceTransaction: string,
+  ): Promise<BridgeRequest | null> {
+    return this.prisma.bridgeRequest.findUnique({
+      where: {
+        source_transaction: sourceTransaction,
+      },
+    });
+  }
+
   async upsertRequests(
     requests: BridgeDataDTO[],
     client?: BasePrismaClient,
@@ -56,32 +66,20 @@ export class BridgeService {
     client?: BasePrismaClient,
   ): Promise<BridgeRequest> {
     const prisma = client ?? this.prisma;
-    let result;
-
-    if (!request.source_transaction) {
-      result = await prisma.bridgeRequest.create({
-        data: {
-          ...request,
-        },
-      });
-    } else {
-      result = await prisma.bridgeRequest.upsert({
-        create: {
-          ...request,
-        },
-        update: {
-          source_transaction: request.source_transaction,
-          destination_transaction: request.destination_transaction,
-          status: request.status,
-          wiron_burn_transaction: request.wiron_burn_transaction,
-        },
-        where: {
-          source_transaction: request.source_transaction,
-        },
-      });
-    }
-
-    return result;
+    return prisma.bridgeRequest.upsert({
+      create: {
+        ...request,
+      },
+      update: {
+        source_transaction: request.source_transaction,
+        destination_transaction: request.destination_transaction,
+        status: request.status,
+        wiron_burn_transaction: request.wiron_burn_transaction,
+      },
+      where: {
+        source_transaction: request.source_transaction,
+      },
+    });
   }
 
   async updateRequest(

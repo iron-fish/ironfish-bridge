@@ -12,12 +12,7 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  BridgeRequest,
-  BridgeRequestStatus,
-  FailureReason,
-} from '@prisma/client';
-import assert from 'assert';
+import { BridgeRequest, BridgeRequestStatus } from '@prisma/client';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
 import { List } from '../common/interfaces/list';
@@ -26,8 +21,6 @@ import { GraphileWorkerService } from '../graphile-worker/graphile-worker.servic
 import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
 import { BridgeService } from './bridge.service';
 import {
-  BridgeCreateDTO,
-  BridgeDataDTO,
   BridgeRetrieveDTO,
   BridgeSendRequestDTO,
   BridgeSendResponseDTO,
@@ -77,64 +70,37 @@ export class BridgeController {
     )
     { sends }: { sends: BridgeSendRequestDTO[] },
   ): Promise<BridgeSendResponseDTO> {
-    const ids = sends.map((s) => s.id).filter((x) => !!x);
-    const requests = await this.bridgeService.findByIds(ids);
     const response: BridgeSendResponseDTO = {};
-    for (const send of sends) {
-      const request = requests.find((r) => r.id === send.id) ?? null;
 
-      const failureReason = this.validateSend(request, send);
+    for (const payload of sends) {
+      let request = await this.bridgeService.findBySourceTransaction(
+        payload.source_transaction,
+      );
+      if (!request) {
+        request = await this.bridgeService.upsertRequest({
+          amount: payload.amount,
+          asset: payload.asset,
+          destination_address: payload.destination_address,
+          destination_chain: payload.destination_chain,
+          destination_transaction: null,
+          source_address: payload.source_address,
+          source_chain: payload.source_chain,
+          source_transaction: payload.source_transaction,
+          status: BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION,
+        });
 
-      if (failureReason) {
-        response[send.id] = {
-          status: BridgeRequestStatus.FAILED,
-          failureReason,
-        };
-        await this.bridgeService.createFailedRequest(request, failureReason);
-        continue;
+        await this.graphileWorkerService.addJob<MintWIronOptions>(
+          GraphileWorkerPattern.MINT_WIRON,
+          {
+            bridgeRequest: request.id,
+          },
+        );
       }
 
-      assert.ok(request);
-
-      await this.graphileWorkerService.addJob<MintWIronOptions>(
-        GraphileWorkerPattern.MINT_WIRON,
-        {
-          bridgeRequest: send.id,
-          amount: request.amount,
-          destination: request.destination_address,
-        },
-      );
-
-      const status = BridgeRequestStatus.PENDING_PRETRANSFER;
-      await this.bridgeService.updateRequest({
-        id: request.id,
-        status,
-        source_transaction: send.source_transaction ?? undefined,
-      });
-
-      response[send.id] = {
-        status,
+      response[request.id] = {
+        status: request.status,
         failureReason: null,
       };
-    }
-    return response;
-  }
-
-  @UseGuards(ApiKeyGuard)
-  @Post('create')
-  async create(
-    @Body(
-      new ValidationPipe({
-        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        transform: true,
-      }),
-    )
-    { requests }: { requests: BridgeDataDTO[] },
-  ): Promise<BridgeCreateDTO> {
-    const response: BridgeCreateDTO = {};
-    const sourceAddresses = await this.bridgeService.upsertRequests(requests);
-    for (const a of sourceAddresses) {
-      response[a.source_address] = a.id;
     }
     return response;
   }
@@ -200,28 +166,6 @@ export class BridgeController {
       response[transaction.id] = { status: transaction.status };
     }
     return response;
-  }
-
-  validateSend(
-    request: BridgeRequest | null,
-    send: BridgeSendRequestDTO,
-  ): FailureReason | null {
-    if (!request) {
-      return FailureReason.REQUEST_NON_EXISTENT;
-    }
-    if (request.status !== BridgeRequestStatus.CREATED) {
-      return FailureReason.REQUEST_INVALID_STATUS;
-    }
-    if (request.source_address !== send.source_address) {
-      return FailureReason.REQUEST_SOURCE_ADDRESS_NOT_MATCHING;
-    }
-    if (request.asset !== send.asset) {
-      return FailureReason.REQUEST_ASSET_NOT_MATCHING;
-    }
-    if (request.amount !== send.amount) {
-      return FailureReason.REQUEST_AMOUNT_NOT_MATCHING;
-    }
-    return null;
   }
 
   @Get('next_wiron_requests')

@@ -41,12 +41,32 @@ export class WIronJobsController {
   async mint(
     options: MintWIronOptions,
   ): Promise<GraphileWorkerHandlerResponse> {
+    const bridgeRequest = await this.bridgeService.find(options.bridgeRequest);
+    if (!bridgeRequest) {
+      this.logger.error(
+        `No bridge request found for ${options.bridgeRequest}`,
+        '',
+      );
+      return { requeue: false };
+    }
+
+    if (
+      bridgeRequest.status !==
+      BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION
+    ) {
+      this.logger.error(
+        `Invalid status for minting WIRON. Bridge request '${options.bridgeRequest}'`,
+        '',
+      );
+      return { requeue: false };
+    }
+
     const { contract } = this.connectWIron();
 
     const result = await contract.mint(
-      options.destination,
+      bridgeRequest.destination_address,
       // TODO handle potential error here string -> bigint
-      BigInt(options.amount),
+      BigInt(bridgeRequest.amount),
     );
     await this.bridgeService.updateRequest({
       id: options.bridgeRequest,

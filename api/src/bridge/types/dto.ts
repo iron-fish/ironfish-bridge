@@ -15,7 +15,7 @@ export type BridgeDataDTO = {
   asset: string;
   source_chain: Chain;
   destination_chain: Chain;
-  source_transaction: string | null;
+  source_transaction: string;
   destination_transaction: string | null;
   wiron_burn_transaction?: string | null;
   status: BridgeRequestStatus;
@@ -26,11 +26,13 @@ export type BridgeRetrieveDTO = {
 };
 
 export type BridgeSendRequestDTO = {
-  id: AddressFk;
   amount: string;
   asset: string;
   source_address: Address;
+  source_chain: Chain;
   source_transaction: string;
+  destination_address: Address;
+  destination_chain: Chain;
 };
 
 export type BridgeSendItemDTO = {

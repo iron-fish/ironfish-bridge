@@ -3,6 +3,4 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 export interface MintWIronOptions {
   bridgeRequest: number;
-  destination: string;
-  amount: string;
 }
