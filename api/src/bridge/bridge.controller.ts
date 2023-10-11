@@ -77,10 +77,15 @@ export class BridgeController {
         payload.source_transaction,
       );
       if (!request) {
+        let destinationAddress = payload.destination_address;
+        if (!destinationAddress.startsWith('0x')) {
+          destinationAddress = `0x${destinationAddress}`;
+        }
+
         request = await this.bridgeService.upsertRequest({
           amount: payload.amount,
           asset: payload.asset,
-          destination_address: payload.destination_address,
+          destination_address: destinationAddress,
           destination_chain: payload.destination_chain,
           destination_transaction: null,
           source_address: payload.source_address,

@@ -63,8 +63,13 @@ export class WIronJobsController {
 
     const { contract } = this.connectWIron();
 
+    let destinationAddress = bridgeRequest.destination_address;
+    if (!destinationAddress.startsWith('0x')) {
+      destinationAddress = `0x${destinationAddress}`;
+    }
+
     const result = await contract.mint(
-      bridgeRequest.destination_address,
+      destinationAddress,
       // TODO handle potential error here string -> bigint
       BigInt(bridgeRequest.amount),
     );
