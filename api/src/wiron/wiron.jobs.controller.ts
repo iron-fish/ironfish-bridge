@@ -57,7 +57,7 @@ export class WIronJobsController {
     const runAt = new Date(
       new Date().getTime() +
         // Use an additional block as a buffer
-        (this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE') + 1) *
+        (Number(this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE')) + 1) *
           SEPOLIA_BLOCK_TIME_MS,
     );
     await this.graphileWorkerService.addJob<RefreshMintWIronTransactionStatusOptions>(
@@ -198,7 +198,7 @@ export class WIronJobsController {
     const runAt = new Date(
       new Date().getTime() +
         // Use an additional block as a buffer
-        (this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE') + 1) *
+        (Number(this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE')) + 1) *
           SEPOLIA_BLOCK_TIME_MS,
     );
     await this.graphileWorkerService.addJob<RefreshBurnWIronTransactionStatusOptions>(

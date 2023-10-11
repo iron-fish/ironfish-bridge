@@ -237,7 +237,7 @@ describe('MintWIronJobsController', () => {
       await wIronJobsController.burn(options);
 
       expect(wIronBurn).toHaveBeenCalledTimes(1);
-      expect(wIronBurn).toHaveBeenCalledWith(options.amount);
+      expect(wIronBurn).toHaveBeenCalledWith(BigInt(options.amount));
 
       const updatedRequest = await bridgeService.findOrThrow(request[0].id);
       expect(updatedRequest.status).toEqual(
