@@ -130,6 +130,59 @@ export class BridgeController {
   }
 
   @UseGuards(ApiKeyGuard)
+  @Post('release')
+  async release(
+    @Body(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { releases }: { releases: BridgeSendRequestDTO[] },
+  ): Promise<BridgeSendResponseDTO> {
+    const response: BridgeSendResponseDTO = {};
+
+    for (const payload of releases) {
+      let request = await this.bridgeService.findBySourceTransaction(
+        payload.source_transaction,
+      );
+      if (!request) {
+        let destinationAddress = payload.destination_address;
+        if (!destinationAddress.startsWith('0x')) {
+          destinationAddress = `0x${destinationAddress}`;
+        }
+
+        request = await this.bridgeService.upsertRequest({
+          amount: payload.amount,
+          asset: payload.asset,
+          destination_address: destinationAddress,
+          destination_chain: payload.destination_chain,
+          destination_transaction: null,
+          source_address: payload.source_address,
+          source_chain: payload.source_chain,
+          source_transaction: payload.source_transaction,
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+        });
+
+        // TODO add type to add job once job is added
+        await this.graphileWorkerService.addJob(
+          GraphileWorkerPattern.RELEASE_TEST_USDC,
+          {
+            bridgeRequest: request.id,
+          },
+        );
+      }
+
+      response[request.id] = {
+        status: request.status,
+        failureReason: null,
+      };
+    }
+    return response;
+  }
+
+  @UseGuards(ApiKeyGuard)
   @Post('head')
   async postHead(
     @Body(
