@@ -4,7 +4,7 @@
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, Max, Min } from 'class-validator';
 
-export class NextWIronBridgeRequestsDto {
+export class NextBridgeRequestsDto {
   @Max(Number.MAX_SAFE_INTEGER)
   @Min(1)
   @IsOptional()

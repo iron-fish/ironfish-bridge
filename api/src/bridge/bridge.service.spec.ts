@@ -23,7 +23,7 @@ describe('BridgeService', () => {
     await app.close();
   });
 
-  describe('nextWIronBridgeRequests', () => {
+  describe('nextReleaseBridgeRequests', () => {
     describe('when the amount of running BridgeRequests is greater than or equal to requested number', () => {
       it('returns the running BridgeRequests', async () => {
         const runningBridgeRequest1 = {
@@ -69,7 +69,7 @@ describe('BridgeService', () => {
             runningBridgeRequest2,
           ]);
 
-        expect(await bridgeService.nextWIronBridgeRequests(2)).toMatchObject([
+        expect(await bridgeService.nextReleaseBridgeRequests(2)).toMatchObject([
           runningBridgeRequest1,
           runningBridgeRequest2,
         ]);
@@ -137,7 +137,7 @@ describe('BridgeService', () => {
           .mockResolvedValueOnce([runningBridgeRequest1, runningBridgeRequest2])
           .mockResolvedValueOnce([pendingBridgeRequest]);
 
-        expect(await bridgeService.nextWIronBridgeRequests(3)).toMatchObject([
+        expect(await bridgeService.nextReleaseBridgeRequests(3)).toMatchObject([
           runningBridgeRequest1,
           runningBridgeRequest2,
         ]);

@@ -19,7 +19,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { bridgeRequestDTO } from '../test/mocks';
 import { bootstrapTestApp } from '../test/test-app';
 import { BridgeService } from './bridge.service';
-import { BridgeSendRequestDTO, UpdateWIronRequestDTO } from './types/dto';
+import { BridgeSendRequestDTO, UpdateRequestDTO } from './types/dto';
 
 describe('BridgeController', () => {
   let app: INestApplication;
@@ -157,18 +157,18 @@ describe('BridgeController', () => {
     });
   });
 
-  describe('GET /bridge/next_wiron_requests', () => {
+  describe('GET /bridge/next_release_requests', () => {
     describe('with a missing api key', () => {
       it('returns a 401', async () => {
         const { body } = await request(app.getHttpServer())
-          .get('/bridge/next_wiron_requests')
+          .get('/bridge/next_release_requests')
           .expect(HttpStatus.UNAUTHORIZED);
 
         expect(body).toMatchSnapshot();
       });
     });
 
-    describe('when multiple wiron bridge requests are requested', () => {
+    describe('when multiple release bridge requests are requested', () => {
       it('returns the records', async () => {
         const mockData = [
           {
@@ -209,11 +209,11 @@ describe('BridgeController', () => {
           },
         ];
         jest
-          .spyOn(bridgeService, 'nextWIronBridgeRequests')
+          .spyOn(bridgeService, 'nextReleaseBridgeRequests')
           .mockResolvedValueOnce(mockData);
 
         const { body } = await request(app.getHttpServer())
-          .get('/bridge/next_wiron_requests')
+          .get('/bridge/next_release_requests')
           .set('Authorization', `Bearer ${API_KEY}`)
           .query({ count: 2 })
           .expect(HttpStatus.OK);
@@ -249,10 +249,10 @@ describe('BridgeController', () => {
     });
   });
 
-  describe('POST /bridge/update_wiron_requests', () => {
+  describe('POST /bridge/update_requests', () => {
     describe('failure cases', () => {
       it('nonexistent request id fails', async () => {
-        const transaction: UpdateWIronRequestDTO = {
+        const transaction: UpdateRequestDTO = {
           id: 123132132,
           destination_transaction: '123123',
           status:
@@ -260,7 +260,7 @@ describe('BridgeController', () => {
         };
 
         const response = await request(app.getHttpServer())
-          .post('/bridge/update_wiron_requests')
+          .post('/bridge/update_requests')
           .set('Authorization', `Bearer ${API_KEY}`)
           .send({
             transactions: [transaction],
@@ -286,14 +286,14 @@ describe('BridgeController', () => {
           },
         ]);
 
-        const transaction: UpdateWIronRequestDTO = {
+        const transaction: UpdateRequestDTO = {
           id: bridgeRequest[0].id,
           destination_transaction: dto.destination_transaction || '123123',
           status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
         };
 
         const response = await request(app.getHttpServer())
-          .post('/bridge/update_wiron_requests')
+          .post('/bridge/update_requests')
           .set('Authorization', `Bearer ${API_KEY}`)
           .send({
             transactions: [transaction],

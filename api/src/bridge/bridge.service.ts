@@ -131,7 +131,7 @@ export class BridgeService {
     });
   }
 
-  async nextWIronBridgeRequests(count?: number): Promise<BridgeRequest[]> {
+  async nextReleaseBridgeRequests(count?: number): Promise<BridgeRequest[]> {
     return this.prisma.bridgeRequest.findMany({
       where: {
         source_chain: 'ETHEREUM',

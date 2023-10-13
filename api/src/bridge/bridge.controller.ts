@@ -26,10 +26,10 @@ import {
   BridgeSendResponseDTO,
   HeadHash,
   OptionalHeadHash,
-  UpdateWIronRequestDTO,
-  UpdateWIronResponseDTO,
+  UpdateRequestDTO,
+  UpdateResponseDTO,
 } from './types/dto';
-import { NextWIronBridgeRequestsDto } from './types/next-wiron-bridge-requests.dto';
+import { NextBridgeRequestsDto } from './types/next-bridge-requests.dto';
 
 @Controller('bridge')
 export class BridgeController {
@@ -141,20 +141,20 @@ export class BridgeController {
   }
 
   @UseGuards(ApiKeyGuard)
-  @Post('update_wiron_requests')
-  async updateWIronBridgeRequests(
+  @Post('update_requests')
+  async updateBridgeRequests(
     @Body(
       new ValidationPipe({
         errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         transform: true,
       }),
     )
-    { transactions }: { transactions: UpdateWIronRequestDTO[] },
-  ): Promise<UpdateWIronResponseDTO> {
+    { transactions }: { transactions: UpdateRequestDTO[] },
+  ): Promise<UpdateResponseDTO> {
     const requests = await this.bridgeService.findByIds(
       transactions.map((t) => t.id),
     );
-    const response: UpdateWIronResponseDTO = {};
+    const response: UpdateResponseDTO = {};
     for (const transaction of transactions) {
       const request = requests.find((r) => r.id === transaction.id) ?? null;
 
@@ -174,20 +174,20 @@ export class BridgeController {
     return response;
   }
 
-  @Get('next_wiron_requests')
+  @Get('next_release_requests')
   @UseGuards(ApiKeyGuard)
-  async nextWIronBridgeRequests(
+  async nextReleaseBridgeRequests(
     @Query(
       new ValidationPipe({
         errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
         transform: true,
       }),
     )
-    { count }: NextWIronBridgeRequestsDto,
+    { count }: NextBridgeRequestsDto,
   ): Promise<List<BridgeRequest>> {
     return {
       object: 'list',
-      data: await this.bridgeService.nextWIronBridgeRequests(count),
+      data: await this.bridgeService.nextReleaseBridgeRequests(count),
     };
   }
 }
