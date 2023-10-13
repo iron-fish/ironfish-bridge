@@ -57,7 +57,8 @@ describe('MintWIronJobsController', () => {
         bridgeRequestDTO({
           amount,
           destination_address,
-          status: BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION,
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
         }),
       );
       jest.spyOn(WIron__factory, 'connect').mockImplementation(() => wIronMock);
@@ -85,7 +86,7 @@ describe('MintWIronJobsController', () => {
 
       const updatedRequest = await bridgeService.findOrThrow(request.id);
       expect(updatedRequest.status).toEqual(
-        BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CONFIRMATION,
+        BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CONFIRMATION,
       );
       expect(updatedRequest.destination_transaction).toBeTruthy();
 
@@ -186,7 +187,7 @@ describe('MintWIronJobsController', () => {
           destination_chain: Chain.IRONFISH,
           source_transaction: event.transactionHash,
           destination_transaction: null,
-          status: BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CREATION,
+          status: BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CREATION,
         };
       });
 
@@ -243,7 +244,7 @@ describe('MintWIronJobsController', () => {
 
       const updatedRequest = await bridgeService.findOrThrow(request[0].id);
       expect(updatedRequest.status).toEqual(
-        BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
+        BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
       );
       expect(updatedRequest.wiron_burn_transaction).toEqual(hash);
 
@@ -480,7 +481,7 @@ describe('MintWIronJobsController', () => {
             amount,
             destination_address,
             status:
-              BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
+              BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
             wiron_burn_transaction: '0xburn',
           }),
         );
@@ -533,7 +534,7 @@ describe('MintWIronJobsController', () => {
             amount,
             destination_address,
             status:
-              BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
+              BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
             wiron_burn_transaction: '0xburn',
           }),
         );
@@ -590,7 +591,7 @@ describe('MintWIronJobsController', () => {
             amount,
             destination_address,
             status:
-              BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
+              BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
             wiron_burn_transaction: '0xburn',
           }),
         );
@@ -639,7 +640,7 @@ describe('MintWIronJobsController', () => {
             amount,
             destination_address,
             status:
-              BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
+              BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
             wiron_burn_transaction: '0xburn',
           }),
         );
@@ -666,7 +667,7 @@ describe('MintWIronJobsController', () => {
 
         const updatedRequest = await bridgeService.findOrThrow(request.id);
         expect(updatedRequest.status).toBe(
-          BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+          BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
         );
       });
     });

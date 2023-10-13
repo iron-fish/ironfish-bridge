@@ -91,7 +91,8 @@ export class BridgeController {
           source_address: payload.source_address,
           source_chain: payload.source_chain,
           source_transaction: payload.source_transaction,
-          status: BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION,
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
         });
 
         await this.graphileWorkerService.addJob<MintWIronOptions>(

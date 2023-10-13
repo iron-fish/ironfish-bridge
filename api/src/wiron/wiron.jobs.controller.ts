@@ -52,7 +52,7 @@ export class WIronJobsController {
 
     if (
       bridgeRequest.status !==
-      BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION
+      BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION
     ) {
       this.logger.error(
         `Invalid status for minting WIRON. Bridge request '${options.bridgeRequest}'`,
@@ -75,7 +75,8 @@ export class WIronJobsController {
     );
     await this.bridgeService.updateRequest({
       id: options.bridgeRequest,
-      status: BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CONFIRMATION,
+      status:
+        BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CONFIRMATION,
       destination_transaction: result.hash,
     });
 
@@ -175,7 +176,7 @@ export class WIronJobsController {
         destination_chain: Chain.IRONFISH,
         source_transaction: event.transactionHash,
         destination_transaction: null,
-        status: BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CREATION,
+        status: BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CREATION,
       };
     });
 
@@ -216,7 +217,7 @@ export class WIronJobsController {
     const result = await contract.burn(BigInt(options.amount));
     await this.bridgeService.updateRequest({
       id: options.bridgeRequestId,
-      status: BridgeRequestStatus.PENDING_WIRON_BURN_TRANSACTION_CONFIRMATION,
+      status: BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
       wiron_burn_transaction: result.hash,
     });
 
@@ -301,7 +302,8 @@ export class WIronJobsController {
 
     await this.bridgeService.updateRequest({
       id: bridgeRequestId,
-      status: BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+      status:
+        BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
     });
 
     return { requeue: false };
