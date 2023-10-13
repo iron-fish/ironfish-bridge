@@ -17,7 +17,7 @@ export type BridgeDataDTO = {
   destination_chain: Chain;
   source_transaction: string;
   destination_transaction: string | null;
-  wiron_burn_transaction?: string | null;
+  source_burn_transaction?: string | null;
   status: BridgeRequestStatus;
 };
 

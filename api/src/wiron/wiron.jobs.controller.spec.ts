@@ -246,7 +246,7 @@ describe('MintWIronJobsController', () => {
       expect(updatedRequest.status).toEqual(
         BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
       );
-      expect(updatedRequest.wiron_burn_transaction).toEqual(hash);
+      expect(updatedRequest.source_burn_transaction).toEqual(hash);
 
       expect(addJob).toHaveBeenCalledTimes(1);
       expect(addJob.mock.calls[0][0]).toEqual(
@@ -482,7 +482,7 @@ describe('MintWIronJobsController', () => {
             destination_address,
             status:
               BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
-            wiron_burn_transaction: '0xburn',
+            source_burn_transaction: '0xburn',
           }),
         );
 
@@ -535,7 +535,7 @@ describe('MintWIronJobsController', () => {
             destination_address,
             status:
               BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
-            wiron_burn_transaction: '0xburn',
+            source_burn_transaction: '0xburn',
           }),
         );
 
@@ -592,7 +592,7 @@ describe('MintWIronJobsController', () => {
             destination_address,
             status:
               BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
-            wiron_burn_transaction: '0xburn',
+            source_burn_transaction: '0xburn',
           }),
         );
 
@@ -641,7 +641,7 @@ describe('MintWIronJobsController', () => {
             destination_address,
             status:
               BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
-            wiron_burn_transaction: '0xburn',
+            source_burn_transaction: '0xburn',
           }),
         );
 
