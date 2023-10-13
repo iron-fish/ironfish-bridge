@@ -136,7 +136,8 @@ export class BridgeService {
       where: {
         source_chain: 'ETHEREUM',
         destination_chain: 'IRONFISH',
-        status: BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+        status:
+          BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
       },
       orderBy: {
         created_at: Prisma.SortOrder.asc,

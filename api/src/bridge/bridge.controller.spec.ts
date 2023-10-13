@@ -135,12 +135,13 @@ describe('BridgeController', () => {
       );
       assert.ok(bridgeRequest);
       expect(bridgeRequest.status).toBe(
-        BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION,
+        BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
       );
 
       expect(response.body).toMatchObject({
         [bridgeRequest.id]: {
-          status: BridgeRequestStatus.PENDING_WIRON_MINT_TRANSACTION_CREATION,
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
         },
       });
     });
@@ -254,7 +255,8 @@ describe('BridgeController', () => {
         const transaction: UpdateWIronRequestDTO = {
           id: 123132132,
           destination_transaction: '123123',
-          status: BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
         };
 
         const response = await request(app.getHttpServer())
@@ -280,7 +282,7 @@ describe('BridgeController', () => {
           {
             ...dto,
             status:
-              BridgeRequestStatus.PENDING_IRON_RELEASE_TRANSACTION_CREATION,
+              BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
           },
         ]);
 
