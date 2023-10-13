@@ -18,6 +18,7 @@ import { ApiKeyGuard } from '../auth/guards/api-key.guard';
 import { List } from '../common/interfaces/list';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
+import { ReleaseTestUSDCOptions } from '../test-usdc/interfaces/release-test-usdc-options';
 import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
 import { BridgeService } from './bridge.service';
 import {
@@ -165,8 +166,7 @@ export class BridgeController {
             BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
         });
 
-        // TODO add type to add job once job is added
-        await this.graphileWorkerService.addJob(
+        await this.graphileWorkerService.addJob<ReleaseTestUSDCOptions>(
           GraphileWorkerPattern.RELEASE_TEST_USDC,
           {
             bridgeRequest: request.id,
