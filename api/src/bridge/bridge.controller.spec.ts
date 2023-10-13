@@ -47,6 +47,10 @@ describe('BridgeController', () => {
     await app.close();
   });
 
+  afterEach(() => {
+    jest.clearAllMocks();
+  });
+
   beforeEach(async () => {
     await prisma.bridgeRequest.deleteMany({});
   });
@@ -142,6 +146,41 @@ describe('BridgeController', () => {
         [bridgeRequest.id]: {
           status:
             BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
+        },
+      });
+    });
+  });
+
+  describe('POST /bridge/release', () => {
+    it('marks the release for confirmation', async () => {
+      const dto = bridgeRequestDTO({});
+
+      const addJobMock = jest
+        .spyOn(graphileWorkerService, 'addJob')
+        .mockImplementationOnce(jest.fn());
+
+      const response = await request(app.getHttpServer())
+        .post('/bridge/release')
+        .set('Authorization', `Bearer ${API_KEY}`)
+        .send({
+          releases: [dto],
+        })
+        .expect(HttpStatus.CREATED);
+
+      expect(addJobMock).toHaveBeenCalledTimes(1);
+
+      const bridgeRequest = await bridgeService.findBySourceTransaction(
+        dto.source_transaction,
+      );
+      assert.ok(bridgeRequest);
+      expect(bridgeRequest.status).toBe(
+        BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+      );
+
+      expect(response.body).toMatchObject({
+        [bridgeRequest.id]: {
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
         },
       });
     });
