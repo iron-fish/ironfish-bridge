@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common';
 import {
   BridgeRequest,
   BridgeRequestStatus,
+  Chain,
   FailedBridgeRequest,
   FailureReason,
   IronFishTestnetHead,
@@ -134,10 +135,24 @@ export class BridgeService {
   async nextReleaseBridgeRequests(count?: number): Promise<BridgeRequest[]> {
     return this.prisma.bridgeRequest.findMany({
       where: {
-        source_chain: 'ETHEREUM',
-        destination_chain: 'IRONFISH',
+        source_chain: Chain.ETHEREUM,
+        destination_chain: Chain.IRONFISH,
         status:
           BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+      },
+      orderBy: {
+        created_at: Prisma.SortOrder.asc,
+      },
+      take: count ?? 1,
+    });
+  }
+
+  async nextBurnBridgeRequests(count?: number): Promise<BridgeRequest[]> {
+    return this.prisma.bridgeRequest.findMany({
+      where: {
+        source_chain: Chain.IRONFISH,
+        destination_chain: Chain.ETHEREUM,
+        status: BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CREATION,
       },
       orderBy: {
         created_at: Prisma.SortOrder.asc,
