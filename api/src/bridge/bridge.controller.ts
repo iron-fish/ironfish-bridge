@@ -12,9 +12,15 @@ import {
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import { BridgeRequest, BridgeRequestStatus } from '@prisma/client';
+import {
+  BridgeRequest,
+  BridgeRequestStatus,
+  FailureReason,
+} from '@prisma/client';
+import assert from 'assert';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
+import { SupportedAssets } from '../common/constants';
 import { List } from '../common/interfaces/list';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
@@ -74,14 +80,17 @@ export class BridgeController {
       sends,
       BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
     );
-    Object.keys(response).map(async (r) => {
+    for (const key in response) {
+      if (response[key].status === BridgeRequestStatus.FAILED) {
+        continue;
+      }
       await this.graphileWorkerService.addJob<MintWIronOptions>(
         GraphileWorkerPattern.MINT_WIRON,
         {
-          bridgeRequest: Number(r),
+          bridgeRequest: Number(key),
         },
       );
-    });
+    }
     return response;
   }
 
@@ -118,14 +127,17 @@ export class BridgeController {
       releases,
       BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
     );
-    Object.keys(response).map(async (r) => {
+    for (const key in response) {
+      if (response[key].status === BridgeRequestStatus.FAILED) {
+        continue;
+      }
       await this.graphileWorkerService.addJob(
         GraphileWorkerPattern.RELEASE_TEST_USDC,
         {
-          bridgeRequest: Number(r),
+          bridgeRequest: Number(key),
         },
       );
-    });
+    }
     return response;
   }
 
@@ -226,7 +238,7 @@ export class BridgeController {
     };
   }
 
-  private async upsertBridgeSendRequestDTOs(
+  async upsertBridgeSendRequestDTOs(
     payloads: BridgeSendRequestDTO[],
     status: BridgeRequestStatus,
   ) {
@@ -255,9 +267,27 @@ export class BridgeController {
         });
       }
 
+      let failureReason = request.failure_reason;
+      if (!(request.asset in SupportedAssets)) {
+        request = await this.bridgeService.updateRequest({
+          id: request.id,
+          status: BridgeRequestStatus.FAILED,
+          failure_reason: FailureReason.REQUEST_ASSET_NOT_MATCHING,
+        });
+        assert.ok(request);
+        await this.bridgeService.createFailedRequest(
+          request,
+          FailureReason.REQUEST_ASSET_NOT_MATCHING,
+          `Request asset is not supported: ${
+            request.asset
+          }. Supported: ${JSON.stringify(SupportedAssets)} `,
+        );
+        failureReason = FailureReason.REQUEST_ASSET_NOT_MATCHING;
+      }
+
       response[request.id] = {
         status: request.status,
-        failureReason: null,
+        failureReason,
       };
     }
     return response;

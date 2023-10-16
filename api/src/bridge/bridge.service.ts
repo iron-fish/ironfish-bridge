@@ -72,10 +72,7 @@ export class BridgeService {
         ...request,
       },
       update: {
-        source_transaction: request.source_transaction,
-        destination_transaction: request.destination_transaction,
-        status: request.status,
-        source_burn_transaction: request.source_burn_transaction,
+        ...request,
       },
       where: {
         source_transaction: request.source_transaction,
@@ -90,6 +87,7 @@ export class BridgeService {
       destination_transaction?: string;
       source_transaction?: string;
       source_burn_transaction?: string;
+      failure_reason?: FailureReason;
     },
     client?: BasePrismaClient,
   ): Promise<BridgeRequest | null> {
