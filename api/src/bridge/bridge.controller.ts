@@ -18,7 +18,6 @@ import { ApiKeyGuard } from '../auth/guards/api-key.guard';
 import { List } from '../common/interfaces/list';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
-import { ReleaseTestUSDCOptions } from '../test-usdc/interfaces/release-test-usdc-options';
 import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
 import { BridgeService } from './bridge.service';
 import {
@@ -127,58 +126,6 @@ export class BridgeController {
         },
       );
     });
-    return response;
-  }
-
-  @UseGuards(ApiKeyGuard)
-  @Post('release')
-  async release(
-    @Body(
-      new ValidationPipe({
-        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        transform: true,
-      }),
-    )
-    { releases }: { releases: BridgeSendRequestDTO[] },
-  ): Promise<BridgeSendResponseDTO> {
-    const response: BridgeSendResponseDTO = {};
-
-    for (const payload of releases) {
-      let request = await this.bridgeService.findBySourceTransaction(
-        payload.source_transaction,
-      );
-      if (!request) {
-        let destinationAddress = payload.destination_address;
-        if (!destinationAddress.startsWith('0x')) {
-          destinationAddress = `0x${destinationAddress}`;
-        }
-
-        request = await this.bridgeService.upsertRequest({
-          amount: payload.amount,
-          asset: payload.asset,
-          destination_address: destinationAddress,
-          destination_chain: payload.destination_chain,
-          destination_transaction: null,
-          source_address: payload.source_address,
-          source_chain: payload.source_chain,
-          source_transaction: payload.source_transaction,
-          status:
-            BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
-        });
-
-        await this.graphileWorkerService.addJob<ReleaseTestUSDCOptions>(
-          GraphileWorkerPattern.RELEASE_TEST_USDC,
-          {
-            bridgeRequest: request.id,
-          },
-        );
-      }
-
-      response[request.id] = {
-        status: request.status,
-        failureReason: null,
-      };
-    }
     return response;
   }
 
