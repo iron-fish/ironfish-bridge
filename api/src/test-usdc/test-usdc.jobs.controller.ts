@@ -127,7 +127,7 @@ export class TestUsdcJobsController {
     const runAt = new Date(
       new Date().getTime() +
         // Use an additional block as a buffer
-        (Number(this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE')) + 1) *
+        (Number(this.config.get<number>('TEST_USDC_FINALITY_HEIGHT_RANGE')) + 1) *
           SEPOLIA_BLOCK_TIME_MS,
     );
     await this.graphileWorkerService.addJob<RefreshReleaseTestUSDCTransactionStatusOptions>(
@@ -203,11 +203,11 @@ export class TestUsdcJobsController {
     provider: ethers.InfuraProvider;
     contract: TestUSDC;
   } {
-    const wIronDeployerPrivateKey = this.config.get<string>(
+    const testUsdcDeployerPrivateKey = this.config.get<string>(
       'TEST_USDC_DEPLOYER_PRIVATE_KEY',
     );
     const provider = new ethers.InfuraProvider('sepolia');
-    const wallet = new ethers.Wallet(wIronDeployerPrivateKey, provider);
+    const wallet = new ethers.Wallet(testUsdcDeployerPrivateKey, provider);
     const contract = TestUSDC__factory.connect(
       TEST_USDC_CONTRACT_ADDRESS,
       wallet,
