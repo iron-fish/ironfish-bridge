@@ -3,12 +3,13 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Controller, UseFilters } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
-import { BridgeRequestStatus } from '@prisma/client';
+import { BridgeRequestStatus, FailureReason } from '@prisma/client';
 import { ethers } from 'ethers';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { BridgeService } from '../bridge/bridge.service';
 import {
   SEPOLIA_BLOCK_TIME_MS,
+  SEPOLIA_EXPLORER_URL,
   TEST_USDC_CONTRACT_ADDRESS,
 } from '../common/constants';
 import { TestUSDC, TestUSDC__factory } from '../contracts';
@@ -17,6 +18,7 @@ import { GraphileWorkerService } from '../graphile-worker/graphile-worker.servic
 import { GraphileWorkerException } from '../graphile-worker/graphile-worker-exception';
 import { GraphileWorkerHandlerResponse } from '../graphile-worker/interfaces/graphile-worker-handler-response';
 import { LoggerService } from '../logger/logger.service';
+import { PrismaService } from '../prisma/prisma.service';
 import { RefreshReleaseTestUSDCTransactionStatusOptions } from './interfaces/refresh-release-test-usdc-transaction-status-options';
 import { ReleaseTestUSDCOptions } from './interfaces/release-test-usdc-options';
 
@@ -27,6 +29,7 @@ export class TestUSDCJobsController {
     private readonly config: ApiConfigService,
     private readonly logger: LoggerService,
     private readonly graphileWorkerService: GraphileWorkerService,
+    private readonly prisma: PrismaService,
   ) {}
 
   @MessagePattern(GraphileWorkerPattern.RELEASE_TEST_USDC)
@@ -85,6 +88,80 @@ export class TestUSDCJobsController {
       { bridgeRequestId: options.bridgeRequestId },
       { jobKey: `refresh_release_test_usdc_${options.bridgeRequestId}`, runAt },
     );
+
+    return { requeue: false };
+  }
+
+  @MessagePattern(
+    GraphileWorkerPattern.REFRESH_RELEASE_TEST_USDC_TRANSACTION_STATUS,
+  )
+  @UseFilters(new GraphileWorkerException())
+  async refreshReleaseTestUSDCTransactionStatus({
+    bridgeRequestId,
+  }: RefreshReleaseTestUSDCTransactionStatusOptions) {
+    const bridgeRequest = await this.bridgeService.find(bridgeRequestId);
+    if (!bridgeRequest || !bridgeRequest.destination_transaction) {
+      this.logger.error(
+        `Invalid release refresh request for '${bridgeRequestId}'`,
+        '',
+      );
+      return { requeue: false };
+    }
+
+    const { provider } = this.connectTestUSDC();
+    const transaction = await provider.getTransactionReceipt(
+      bridgeRequest.destination_transaction,
+    );
+    if (!transaction) {
+      this.logger.error(
+        `No release transaction found for ${bridgeRequest.destination_transaction}`,
+        '',
+      );
+      return { requeue: false };
+    }
+
+    // Try again in a minute if still unconfirmed
+    if (
+      !transaction.blockHash ||
+      (await transaction.confirmations()) <
+        this.config.get<number>('WIRON_FINALITY_HEIGHT_RANGE')
+    ) {
+      this.logger.debug(
+        `Retrying for bridge request ${bridgeRequestId} in 60s`,
+      );
+      const runAt = new Date(new Date().getTime() + 60 * 1000);
+      await this.graphileWorkerService.addJob<RefreshReleaseTestUSDCTransactionStatusOptions>(
+        GraphileWorkerPattern.REFRESH_RELEASE_TEST_USDC_TRANSACTION_STATUS,
+        { bridgeRequestId },
+        { jobKey: `refresh_release_test_usdc_${bridgeRequestId}`, runAt },
+      );
+      return { requeue: false };
+    }
+
+    if (!transaction.status) {
+      this.logger.error(`Bridge request ${bridgeRequestId} failed`, '');
+      await this.prisma.$transaction(async (prisma) => {
+        const request = await this.bridgeService.updateRequest(
+          {
+            id: bridgeRequestId,
+            status: BridgeRequestStatus.FAILED,
+          },
+          prisma,
+        );
+        await this.bridgeService.createFailedRequest(
+          request,
+          FailureReason.TEST_USDC_RELEASE_TRANSACTION_FAILED,
+          `Release TestUSDC failed. Check ${SEPOLIA_EXPLORER_URL}/tx/${transaction.hash}`,
+          prisma,
+        );
+      });
+      return { requeue: false };
+    }
+
+    await this.bridgeService.updateRequest({
+      id: bridgeRequestId,
+      status: BridgeRequestStatus.CONFIRMED,
+    });
 
     return { requeue: false };
   }
