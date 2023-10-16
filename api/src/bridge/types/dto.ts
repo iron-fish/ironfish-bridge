@@ -50,12 +50,12 @@ export type HeadHash = { hash: string };
 
 export type OptionalHeadHash = { hash: string | null };
 
-export type UpdateWIronRequestDTO = {
+export type UpdateRequestDTO = {
   id: AddressFk;
   destination_transaction: string;
   status: BridgeRequestStatus;
 };
 
-export type UpdateWIronResponseDTO = {
+export type UpdateResponseDTO = {
   [keyof: AddressFk]: { status: BridgeRequestStatus | null };
 };
