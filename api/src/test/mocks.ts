@@ -17,7 +17,7 @@ export const bridgeRequestDTO = (options: {
   asset: '51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c',
   source_transaction:
     '00000000000000021a63de16fea25d79f66f092862a893274690000000000000',
-  destination_address: options.destination_address ?? 'foooooooooooo',
+  destination_address: options.destination_address ?? '0xfoooooooooooo',
   destination_transaction: options.destination_transaction ?? null,
   status: options.status ?? BridgeRequestStatus.CREATED,
   source_chain: Chain.ETHEREUM,
