@@ -70,44 +70,62 @@ export class BridgeController {
     )
     { sends }: { sends: BridgeSendRequestDTO[] },
   ): Promise<BridgeSendResponseDTO> {
-    const response: BridgeSendResponseDTO = {};
-
-    for (const payload of sends) {
-      let request = await this.bridgeService.findBySourceTransaction(
-        payload.source_transaction,
+    const response = await this.upsertBridgeSendRequestDTOs(
+      sends,
+      BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
+    );
+    Object.keys(response).map(async (r) => {
+      await this.graphileWorkerService.addJob<MintWIronOptions>(
+        GraphileWorkerPattern.MINT_WIRON,
+        {
+          bridgeRequest: Number(r),
+        },
       );
-      if (!request) {
-        let destinationAddress = payload.destination_address;
-        if (!destinationAddress.startsWith('0x')) {
-          destinationAddress = `0x${destinationAddress}`;
-        }
+    });
+    return response;
+  }
 
-        request = await this.bridgeService.upsertRequest({
-          amount: payload.amount,
-          asset: payload.asset,
-          destination_address: destinationAddress,
-          destination_chain: payload.destination_chain,
-          destination_transaction: null,
-          source_address: payload.source_address,
-          source_chain: payload.source_chain,
-          source_transaction: payload.source_transaction,
-          status:
-            BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
-        });
+  @UseGuards(ApiKeyGuard)
+  @Post('burn')
+  async burn(
+    @Body(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { burns }: { burns: BridgeSendRequestDTO[] },
+  ): Promise<BridgeSendResponseDTO> {
+    const response = await this.upsertBridgeSendRequestDTOs(
+      burns,
+      BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
+    );
+    return response;
+  }
 
-        await this.graphileWorkerService.addJob<MintWIronOptions>(
-          GraphileWorkerPattern.MINT_WIRON,
-          {
-            bridgeRequest: request.id,
-          },
-        );
-      }
-
-      response[request.id] = {
-        status: request.status,
-        failureReason: null,
-      };
-    }
+  @UseGuards(ApiKeyGuard)
+  @Post('release')
+  async release(
+    @Body(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { releases }: { releases: BridgeSendRequestDTO[] },
+  ): Promise<BridgeSendResponseDTO> {
+    const response = await this.upsertBridgeSendRequestDTOs(
+      releases,
+      BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+    );
+    Object.keys(response).map(async (r) => {
+      await this.graphileWorkerService.addJob(
+        GraphileWorkerPattern.RELEASE_TEST_USDC,
+        {
+          bridgeRequest: Number(r),
+        },
+      );
+    });
     return response;
   }
 
@@ -189,5 +207,42 @@ export class BridgeController {
       object: 'list',
       data: await this.bridgeService.nextReleaseBridgeRequests(count),
     };
+  }
+
+  private async upsertBridgeSendRequestDTOs(
+    payloads: BridgeSendRequestDTO[],
+    status: BridgeRequestStatus,
+  ) {
+    const response: BridgeSendResponseDTO = {};
+
+    for (const payload of payloads) {
+      let request = await this.bridgeService.findBySourceTransaction(
+        payload.source_transaction,
+      );
+      if (!request) {
+        let destinationAddress = payload.destination_address;
+        if (!destinationAddress.startsWith('0x')) {
+          destinationAddress = `0x${destinationAddress}`;
+        }
+
+        request = await this.bridgeService.upsertRequest({
+          amount: payload.amount,
+          asset: payload.asset,
+          destination_address: destinationAddress,
+          destination_chain: payload.destination_chain,
+          destination_transaction: null,
+          source_address: payload.source_address,
+          source_chain: payload.source_chain,
+          source_transaction: payload.source_transaction,
+          status,
+        });
+      }
+
+      response[request.id] = {
+        status: request.status,
+        failureReason: null,
+      };
+    }
+    return response;
   }
 }
