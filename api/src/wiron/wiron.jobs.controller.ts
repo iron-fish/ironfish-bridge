@@ -218,7 +218,7 @@ export class WIronJobsController {
     await this.bridgeService.updateRequest({
       id: options.bridgeRequestId,
       status: BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
-      wiron_burn_transaction: result.hash,
+      source_burn_transaction: result.hash,
     });
 
     const runAt = new Date(
@@ -242,7 +242,7 @@ export class WIronJobsController {
     bridgeRequestId,
   }: RefreshBurnWIronTransactionStatusOptions) {
     const bridgeRequest = await this.bridgeService.find(bridgeRequestId);
-    if (!bridgeRequest || !bridgeRequest.wiron_burn_transaction) {
+    if (!bridgeRequest || !bridgeRequest.source_burn_transaction) {
       this.logger.error(
         `Invalid burn refresh request for '${bridgeRequestId}'`,
         '',
@@ -252,11 +252,11 @@ export class WIronJobsController {
 
     const { provider } = this.connectWIron();
     const transaction = await provider.getTransactionReceipt(
-      bridgeRequest.wiron_burn_transaction,
+      bridgeRequest.source_burn_transaction,
     );
     if (!transaction) {
       this.logger.error(
-        `No burn transaction found for ${bridgeRequest.wiron_burn_transaction}`,
+        `No burn transaction found for ${bridgeRequest.source_burn_transaction}`,
         '',
       );
       return { requeue: false };

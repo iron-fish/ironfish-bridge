@@ -74,7 +74,7 @@ export class BridgeService {
         source_transaction: request.source_transaction,
         destination_transaction: request.destination_transaction,
         status: request.status,
-        wiron_burn_transaction: request.wiron_burn_transaction,
+        source_burn_transaction: request.source_burn_transaction,
       },
       where: {
         source_transaction: request.source_transaction,
@@ -88,7 +88,7 @@ export class BridgeService {
       status?: BridgeRequestStatus;
       destination_transaction?: string;
       source_transaction?: string;
-      wiron_burn_transaction?: string;
+      source_burn_transaction?: string;
     },
     client?: BasePrismaClient,
   ): Promise<BridgeRequest | null> {

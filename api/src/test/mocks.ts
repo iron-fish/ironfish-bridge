@@ -9,7 +9,7 @@ export const bridgeRequestDTO = (options: {
   source_address?: string;
   amount?: string;
   status?: BridgeRequestStatus;
-  wiron_burn_transaction?: string;
+  source_burn_transaction?: string;
   destination_transaction?: string;
 }): BridgeDataDTO => ({
   amount: options.amount ?? '100',
@@ -22,5 +22,5 @@ export const bridgeRequestDTO = (options: {
   status: options.status ?? BridgeRequestStatus.CREATED,
   source_chain: Chain.ETHEREUM,
   destination_chain: Chain.IRONFISH,
-  wiron_burn_transaction: options.wiron_burn_transaction ?? null,
+  source_burn_transaction: options.source_burn_transaction ?? null,
 });
