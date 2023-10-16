@@ -209,6 +209,23 @@ export class BridgeController {
     };
   }
 
+  @Get('next_burn_requests')
+  @UseGuards(ApiKeyGuard)
+  async nextBurnBridgeRequests(
+    @Query(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { count }: NextBridgeRequestsDto,
+  ): Promise<List<BridgeRequest>> {
+    return {
+      object: 'list',
+      data: await this.bridgeService.nextBurnBridgeRequests(count),
+    };
+  }
+
   private async upsertBridgeSendRequestDTOs(
     payloads: BridgeSendRequestDTO[],
     status: BridgeRequestStatus,
