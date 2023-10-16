@@ -16,9 +16,9 @@ import { TypedContractEvent, TypedEventLog } from '../contracts/common';
 import { TransferWithMetadataEvent } from '../contracts/WIron';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
+import { SepoliaHeadsService } from '../sepolia-heads/sepolia-heads.service';
 import { bridgeRequestDTO } from '../test/mocks';
 import { bootstrapTestApp } from '../test/test-app';
-import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-head.service';
 import { BurnWIronOptions } from './interfaces/burn-wiron-options';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
 import { WIronJobsController } from './wiron.jobs.controller';
@@ -27,15 +27,15 @@ describe('MintWIronJobsController', () => {
   let app: INestApplication;
   let bridgeService: BridgeService;
   let graphileWorkerService: GraphileWorkerService;
+  let sepoliaHeadsService: SepoliaHeadsService;
   let wIronJobsController: WIronJobsController;
-  let wIronSepoliaHeadService: WIronSepoliaHeadService;
 
   beforeAll(async () => {
     app = await bootstrapTestApp();
     bridgeService = app.get(BridgeService);
     graphileWorkerService = app.get(GraphileWorkerService);
+    sepoliaHeadsService = app.get(SepoliaHeadsService);
     wIronJobsController = app.get(WIronJobsController);
-    wIronSepoliaHeadService = app.get(WIronSepoliaHeadService);
     await app.init();
   });
 
@@ -100,7 +100,7 @@ describe('MintWIronJobsController', () => {
   describe('refreshTransfers', () => {
     it('updates latest head and saves bridge requests', async () => {
       const upsertRequests = jest.spyOn(bridgeService, 'upsertRequests');
-      const updateHead = jest.spyOn(wIronSepoliaHeadService, 'updateHead');
+      const updateHead = jest.spyOn(sepoliaHeadsService, 'updateWIronHead');
       const addJob = jest
         .spyOn(graphileWorkerService, 'addJob')
         .mockImplementation(jest.fn());

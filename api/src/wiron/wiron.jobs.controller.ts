@@ -19,7 +19,7 @@ import { GraphileWorkerException } from '../graphile-worker/graphile-worker-exce
 import { GraphileWorkerHandlerResponse } from '../graphile-worker/interfaces/graphile-worker-handler-response';
 import { LoggerService } from '../logger/logger.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { WIronSepoliaHeadService } from '../wiron-sepolia-head/wiron-sepolia-head.service';
+import { SepoliaHeadsService } from '../sepolia-heads/sepolia-heads.service';
 import { BurnWIronOptions } from './interfaces/burn-wiron-options';
 import { MintWIronOptions } from './interfaces/mint-wiron-options';
 import { RefreshBurnWIronTransactionStatusOptions } from './interfaces/refresh-burn-wiron-transaction-status-options';
@@ -33,7 +33,7 @@ export class WIronJobsController {
     private readonly logger: LoggerService,
     private readonly graphileWorkerService: GraphileWorkerService,
     private readonly prisma: PrismaService,
-    private readonly wIronSepoliaHeadService: WIronSepoliaHeadService,
+    private readonly sepoliaHeadsService: SepoliaHeadsService,
   ) {}
 
   @MessagePattern(GraphileWorkerPattern.MINT_WIRON)
@@ -108,7 +108,7 @@ export class WIronJobsController {
       'WIRON_FINALITY_HEIGHT_RANGE',
     );
     const headHeightWithFinality = head.number - finalityRange;
-    const currentHead = await this.wIronSepoliaHeadService.head();
+    const currentHead = await this.sepoliaHeadsService.wIronHead();
     const fromBlockHeight = currentHead.height;
     const toBlockHeight = Math.min(
       currentHead.height + this.config.get<number>('WIRON_QUERY_HEIGHT_RANGE'),
@@ -190,7 +190,7 @@ export class WIronJobsController {
         bridgeRequests,
         prisma,
       );
-      await this.wIronSepoliaHeadService.updateHead(
+      await this.sepoliaHeadsService.updateWIronHead(
         toBlock.hash,
         toBlock.number,
         prisma,

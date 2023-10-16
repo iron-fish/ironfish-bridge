@@ -3,11 +3,11 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Module } from '@nestjs/common';
 import { PrismaModule } from '../prisma/prisma.module';
-import { WIronSepoliaHeadService } from './wiron-sepolia-head.service';
+import { SepoliaHeadsService } from './sepolia-heads.service';
 
 @Module({
-  exports: [WIronSepoliaHeadService],
+  exports: [SepoliaHeadsService],
   imports: [PrismaModule],
-  providers: [WIronSepoliaHeadService],
+  providers: [SepoliaHeadsService],
 })
-export class WIronSepoliaHeadModule {}
+export class SepoliaHeadsModule {}

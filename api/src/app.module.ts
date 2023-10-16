@@ -15,9 +15,10 @@ import { BridgeRestModule } from './bridge/bridge.rest.module';
 import { RequireSslMiddleware } from './common/middlewares/require-ssl.middleware';
 import { HealthRestModule } from './health/health.rest.module';
 import { LoggerModule } from './logger/logger.module';
+import { TestUsdcJobsModule } from './test-usdc/test-usdc.jobs.module';
 import { WIronJobsModule } from './wiron/wiron.jobs.module';
 
-export const JOBS_MODULES = [WIronJobsModule];
+export const JOBS_MODULES = [TestUsdcJobsModule, WIronJobsModule];
 
 export const REST_MODULES = [HealthRestModule, BridgeRestModule];
 

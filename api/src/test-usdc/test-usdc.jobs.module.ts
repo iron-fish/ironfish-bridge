@@ -8,10 +8,10 @@ import { GraphileWorkerModule } from '../graphile-worker/graphile-worker.module'
 import { LoggerModule } from '../logger/logger.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { SepoliaHeadsModule } from '../sepolia-heads/sepolia-heads.module';
-import { WIronJobsController } from './wiron.jobs.controller';
+import { TestUsdcJobsController } from './test-usdc.jobs.controller';
 
 @Module({
-  controllers: [WIronJobsController],
+  controllers: [TestUsdcJobsController],
   imports: [
     ApiConfigModule,
     BridgeModule,
@@ -21,4 +21,4 @@ import { WIronJobsController } from './wiron.jobs.controller';
     SepoliaHeadsModule,
   ],
 })
-export class WIronJobsModule {}
+export class TestUsdcJobsModule {}
