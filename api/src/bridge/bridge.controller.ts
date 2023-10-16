@@ -98,7 +98,7 @@ export class BridgeController {
   ): Promise<BridgeSendResponseDTO> {
     const response = await this.upsertBridgeSendRequestDTOs(
       burns,
-      BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
+      BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CREATION,
     );
     return response;
   }
