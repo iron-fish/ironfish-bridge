@@ -194,9 +194,7 @@ export class BridgeController {
       }
 
       await this.bridgeService.updateRequest({
-        id: transaction.id,
-        status: transaction.status,
-        destination_transaction: transaction.destination_transaction,
+        ...transaction,
       });
 
       response[transaction.id] = { status: transaction.status };

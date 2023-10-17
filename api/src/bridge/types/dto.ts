@@ -52,8 +52,9 @@ export type OptionalHeadHash = { hash: string | null };
 
 export type UpdateRequestDTO = {
   id: AddressFk;
-  destination_transaction: string;
   status: BridgeRequestStatus;
+  destination_transaction?: string;
+  source_burn_transaction?: string;
 };
 
 export type UpdateResponseDTO = {
