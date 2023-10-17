@@ -3,7 +3,12 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { INestApplication } from '@nestjs/common';
 import { BridgeRequestStatus, Chain } from '@prisma/client';
-import { Block, ContractTransactionResponse, ethers } from 'ethers';
+import {
+  Block,
+  ContractTransactionResponse,
+  ethers,
+  TransactionReceipt,
+} from 'ethers';
 import { mock } from 'jest-mock-extended';
 import { BridgeService } from '../bridge/bridge.service';
 import { TestUSDC, TestUSDC__factory } from '../contracts';
@@ -149,7 +154,7 @@ describe('TestUsdcJobsController', () => {
 
   describe('release', () => {
     it('calls release on the TestUSDC smart contract', async () => {
-      const testUSDCMock = mock<TestUSDC>();
+      const testUsdcMock = mock<TestUSDC>();
 
       const amount = '100';
       const destination_address = '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
@@ -163,9 +168,9 @@ describe('TestUsdcJobsController', () => {
       );
       jest
         .spyOn(TestUSDC__factory, 'connect')
-        .mockImplementation(() => testUSDCMock);
-      const testUSDCRelease = jest
-        .spyOn(testUSDCMock, 'transfer')
+        .mockImplementation(() => testUsdcMock);
+      const testUsdcRelease = jest
+        .spyOn(testUsdcMock, 'transfer')
         .mockImplementationOnce(
           () =>
             Promise.resolve({
@@ -182,8 +187,8 @@ describe('TestUsdcJobsController', () => {
       };
       await testUsdcJobsController.release(options);
 
-      expect(testUSDCRelease).toHaveBeenCalledTimes(1);
-      expect(testUSDCRelease).toHaveBeenCalledWith(
+      expect(testUsdcRelease).toHaveBeenCalledTimes(1);
+      expect(testUsdcRelease).toHaveBeenCalledWith(
         request.destination_address,
         BigInt(request.amount),
       );
@@ -198,6 +203,212 @@ describe('TestUsdcJobsController', () => {
       expect(addJob.mock.calls[0][0]).toEqual(
         GraphileWorkerPattern.REFRESH_RELEASE_TEST_USDC_TRANSACTION_STATUS,
       );
+    });
+  });
+
+  describe('refreshReleaseTestUSDCTransactionStatus', () => {
+    describe('if a transaction is not on a block', () => {
+      it('tries again', async () => {
+        const testUsdcMock = mock<TestUSDC>();
+        const testUsdcProviderMock = mock<ethers.InfuraProvider>();
+        jest
+          .spyOn(testUsdcJobsController, 'connectTestUsdc')
+          .mockImplementation(() => ({
+            contract: testUsdcMock,
+            provider: testUsdcProviderMock,
+          }));
+
+        const amount = '100';
+        const destination_address =
+          '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+        const request = await bridgeService.upsertRequest(
+          bridgeRequestDTO({
+            amount,
+            destination_address,
+            status: BridgeRequestStatus.CREATED,
+            destination_transaction: '0xmint',
+          }),
+        );
+
+        const addJob = jest
+          .spyOn(graphileWorkerService, 'addJob')
+          .mockImplementation(jest.fn());
+
+        const mockTransactionReceipt: TransactionReceipt = {
+          blockHash: null,
+        } as unknown as TransactionReceipt;
+        jest
+          .spyOn(testUsdcProviderMock, 'getTransactionReceipt')
+          .mockImplementationOnce(() =>
+            Promise.resolve(mockTransactionReceipt),
+          );
+
+        const { requeue } =
+          await testUsdcJobsController.refreshReleaseTestUSDCTransactionStatus({
+            bridgeRequestId: request.id,
+          });
+
+        expect(requeue).toBe(false);
+        expect(addJob).toHaveBeenCalledTimes(1);
+        expect(addJob.mock.calls[0][0]).toBe(
+          GraphileWorkerPattern.REFRESH_RELEASE_TEST_USDC_TRANSACTION_STATUS,
+        );
+        expect(addJob.mock.calls[0][1]).toEqual({
+          bridgeRequestId: request.id,
+        });
+      });
+    });
+
+    describe('if a transaction is unconfirmed', () => {
+      it('tries again', async () => {
+        const testUsdcMock = mock<TestUSDC>();
+        const testUsdcProviderMock = mock<ethers.InfuraProvider>();
+        jest
+          .spyOn(testUsdcJobsController, 'connectTestUsdc')
+          .mockImplementation(() => ({
+            contract: testUsdcMock,
+            provider: testUsdcProviderMock,
+          }));
+
+        const amount = '100';
+        const destination_address =
+          '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+        const request = await bridgeService.upsertRequest(
+          bridgeRequestDTO({
+            amount,
+            destination_address,
+            status: BridgeRequestStatus.CREATED,
+            destination_transaction: '0xmint',
+          }),
+        );
+
+        const addJob = jest
+          .spyOn(graphileWorkerService, 'addJob')
+          .mockImplementation(jest.fn());
+
+        const mockTransactionReceipt: TransactionReceipt = {
+          blockHash: 'blockHash',
+          confirmations: jest.fn(),
+        } as unknown as TransactionReceipt;
+        jest
+          .spyOn(testUsdcProviderMock, 'getTransactionReceipt')
+          .mockImplementationOnce(() =>
+            Promise.resolve(mockTransactionReceipt),
+          );
+        jest
+          .spyOn(mockTransactionReceipt, 'confirmations')
+          .mockImplementationOnce(() => Promise.resolve(0));
+
+        const { requeue } =
+          await testUsdcJobsController.refreshReleaseTestUSDCTransactionStatus({
+            bridgeRequestId: request.id,
+          });
+
+        expect(requeue).toBe(false);
+        expect(addJob).toHaveBeenCalledTimes(1);
+        expect(addJob.mock.calls[0][0]).toBe(
+          GraphileWorkerPattern.REFRESH_RELEASE_TEST_USDC_TRANSACTION_STATUS,
+        );
+        expect(addJob.mock.calls[0][1]).toEqual({
+          bridgeRequestId: request.id,
+        });
+      });
+    });
+
+    describe('if a transaction is failed', () => {
+      it('updates the status to failed', async () => {
+        const testUsdcMock = mock<TestUSDC>();
+        const testUsdcProviderMock = mock<ethers.InfuraProvider>();
+        jest
+          .spyOn(testUsdcJobsController, 'connectTestUsdc')
+          .mockImplementation(() => ({
+            contract: testUsdcMock,
+            provider: testUsdcProviderMock,
+          }));
+
+        const amount = '100';
+        const destination_address =
+          '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+        const request = await bridgeService.upsertRequest(
+          bridgeRequestDTO({
+            amount,
+            destination_address,
+            status: BridgeRequestStatus.CREATED,
+            destination_transaction: '0xmint',
+          }),
+        );
+
+        const mockTransactionReceipt: TransactionReceipt = {
+          blockHash: 'blockHash',
+          status: 0,
+          confirmations: jest.fn(),
+        } as unknown as TransactionReceipt;
+        jest
+          .spyOn(testUsdcProviderMock, 'getTransactionReceipt')
+          .mockImplementationOnce(() =>
+            Promise.resolve(mockTransactionReceipt),
+          );
+        jest
+          .spyOn(mockTransactionReceipt, 'confirmations')
+          .mockImplementationOnce(() => Promise.resolve(1000));
+
+        const { requeue } =
+          await testUsdcJobsController.refreshReleaseTestUSDCTransactionStatus({
+            bridgeRequestId: request.id,
+          });
+        expect(requeue).toBe(false);
+
+        const updatedRequest = await bridgeService.findOrThrow(request.id);
+        expect(updatedRequest.status).toBe(BridgeRequestStatus.FAILED);
+      });
+    });
+
+    describe('when the transaction is confirmed', () => {
+      it('updates the status to confirmed', async () => {
+        const testUsdcMock = mock<TestUSDC>();
+        const testUsdcProviderMock = mock<ethers.InfuraProvider>();
+        jest
+          .spyOn(testUsdcJobsController, 'connectTestUsdc')
+          .mockImplementation(() => ({
+            contract: testUsdcMock,
+            provider: testUsdcProviderMock,
+          }));
+
+        const amount = '100';
+        const destination_address =
+          '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
+        const request = await bridgeService.upsertRequest(
+          bridgeRequestDTO({
+            amount,
+            destination_address,
+            status: BridgeRequestStatus.CREATED,
+            destination_transaction: '0xmint',
+          }),
+        );
+
+        const mockTransactionReceipt: TransactionReceipt = {
+          blockHash: 'blockHash',
+          status: 1,
+          confirmations: jest.fn(),
+        } as unknown as TransactionReceipt;
+        jest
+          .spyOn(testUsdcProviderMock, 'getTransactionReceipt')
+          .mockImplementationOnce(() =>
+            Promise.resolve(mockTransactionReceipt),
+          );
+        jest
+          .spyOn(mockTransactionReceipt, 'confirmations')
+          .mockImplementationOnce(() => Promise.resolve(1000));
+
+        const { requeue } =
+          await testUsdcJobsController.refreshReleaseTestUSDCTransactionStatus({
+            bridgeRequestId: request.id,
+          });
+        expect(requeue).toBe(false);
+
+        const updatedRequest = await bridgeService.findOrThrow(request.id);
+        expect(updatedRequest.status).toBe(BridgeRequestStatus.CONFIRMED);
+      });
     });
   });
 });
