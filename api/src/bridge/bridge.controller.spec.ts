@@ -410,8 +410,10 @@ describe('BridgeController', () => {
     });
 
     describe('success case', () => {
-      it('updates the request status', async () => {
-        const dto = bridgeRequestDTO({});
+      it('updates the request status for destination transaction', async () => {
+        const dto = bridgeRequestDTO({
+          source_burn_transaction: 'source_burn',
+        });
         const bridgeRequest = await bridgeService.upsertRequests([
           {
             ...dto,
@@ -444,10 +446,106 @@ describe('BridgeController', () => {
         expect(updatedRequest[0].destination_transaction).toBe(
           transaction.destination_transaction,
         );
+        expect(updatedRequest[0].source_burn_transaction).toBe(
+          dto.source_burn_transaction,
+        );
 
         expect(response.body).toMatchObject({
           [bridgeRequest[0].id]: {
             status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+          },
+        });
+      });
+
+      it('updates the request status for source burn transaction', async () => {
+        const dto = bridgeRequestDTO({
+          destination_transaction: 'destination',
+        });
+        const bridgeRequest = await bridgeService.upsertRequests([
+          {
+            ...dto,
+            status:
+              BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CREATION,
+          },
+        ]);
+
+        const transaction: UpdateRequestDTO = {
+          id: bridgeRequest[0].id,
+          source_burn_transaction: dto.source_burn_transaction || '123123',
+          status:
+            BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
+        };
+
+        const response = await request(app.getHttpServer())
+          .post('/bridge/update_requests')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .send({
+            transactions: [transaction],
+          })
+          .expect(HttpStatus.CREATED);
+
+        const updatedRequest = await bridgeService.findByIds([
+          bridgeRequest[0].id,
+        ]);
+
+        expect(updatedRequest[0].status).toBe(
+          BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
+        );
+        expect(updatedRequest[0].source_burn_transaction).toBe(
+          transaction.source_burn_transaction,
+        );
+        expect(updatedRequest[0].destination_transaction).toBe(
+          dto.destination_transaction,
+        );
+
+        expect(response.body).toMatchObject({
+          [bridgeRequest[0].id]: {
+            status:
+              BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
+          },
+        });
+      });
+
+      it('updates the request status without transaction', async () => {
+        const dto = bridgeRequestDTO({
+          destination_transaction: 'destination',
+          source_burn_transaction: 'source_burn',
+        });
+        const bridgeRequest = await bridgeService.upsertRequests([
+          {
+            ...dto,
+            status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
+          },
+        ]);
+
+        const transaction: UpdateRequestDTO = {
+          id: bridgeRequest[0].id,
+          status: BridgeRequestStatus.CONFIRMED,
+        };
+
+        const response = await request(app.getHttpServer())
+          .post('/bridge/update_requests')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .send({
+            transactions: [transaction],
+          })
+          .expect(HttpStatus.CREATED);
+
+        const updatedRequest = await bridgeService.findByIds([
+          bridgeRequest[0].id,
+        ]);
+
+        expect(updatedRequest[0].status).toBe(BridgeRequestStatus.CONFIRMED);
+        expect(updatedRequest[0].source_burn_transaction).toBe(
+          dto.source_burn_transaction,
+        );
+        expect(updatedRequest[0].destination_transaction).toBe(
+          dto.destination_transaction,
+        );
+
+        expect(response.body).toMatchObject({
+          [bridgeRequest[0].id]: {
+            status: BridgeRequestStatus.CONFIRMED,
           },
         });
       });
