@@ -172,7 +172,7 @@ export class TestUsdcJobsController {
         source_address: event.args[0],
         destination_address: destinationAddress,
         amount: event.args[2].toString(),
-        asset: 'Test USDC',
+        asset: TEST_USDC_CONTRACT_ADDRESS,
         source_chain: Chain.ETHEREUM,
         destination_chain: Chain.IRONFISH,
         source_transaction: event.transactionHash,

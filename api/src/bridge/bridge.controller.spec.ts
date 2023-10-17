@@ -14,6 +14,7 @@ import { BridgeRequestStatus, Chain } from '@prisma/client';
 import assert from 'assert';
 import request from 'supertest';
 import { ApiConfigService } from '../api-config/api-config.service';
+import { IRON_ASSET_ID } from '../common/constants';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { bridgeRequestDTO } from '../test/mocks';
@@ -213,7 +214,7 @@ describe('BridgeController', () => {
           {
             id: 0,
             amount: '0',
-            asset: 'IRON',
+            asset: IRON_ASSET_ID,
             source_address: 'source',
             destination_address: 'destination',
             source_transaction: 'source_transaction0',
@@ -231,7 +232,7 @@ describe('BridgeController', () => {
           {
             id: 1,
             amount: '1',
-            asset: 'IRON',
+            asset: IRON_ASSET_ID,
             source_address: 'source',
             destination_address: 'destination',
             source_transaction: 'source_transaction',
@@ -305,7 +306,7 @@ describe('BridgeController', () => {
           {
             id: 0,
             amount: '0',
-            asset: 'IRON',
+            asset: IRON_ASSET_ID,
             source_address: 'source',
             destination_address: 'destination',
             source_transaction: 'source_transaction0',
@@ -324,7 +325,7 @@ describe('BridgeController', () => {
           {
             id: 1,
             amount: '1',
-            asset: 'IRON',
+            asset: IRON_ASSET_ID,
             source_address: 'source',
             destination_address: 'destination',
             source_transaction: 'source_transaction',

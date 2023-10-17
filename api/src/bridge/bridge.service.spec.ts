@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { INestApplication } from '@nestjs/common';
 import { BridgeRequestStatus, Chain } from '@prisma/client';
+import { IRON_ASSET_ID } from '../common/constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { bootstrapTestApp } from '../test/test-app';
 import { BridgeService } from './bridge.service';
@@ -29,7 +30,7 @@ describe('BridgeService', () => {
         const runningBridgeRequest1 = {
           id: 0,
           amount: '0',
-          asset: 'IRON',
+          asset: IRON_ASSET_ID,
           source_address: 'source',
           destination_address: 'destination',
           source_transaction: 'foo',
@@ -47,7 +48,7 @@ describe('BridgeService', () => {
         const runningBridgeRequest2 = {
           id: 1,
           amount: '1',
-          asset: 'IRON',
+          asset: IRON_ASSET_ID,
           source_address: 'source',
           destination_address: 'destination',
           source_transaction: 'bar',
@@ -81,7 +82,7 @@ describe('BridgeService', () => {
         const runningBridgeRequest1 = {
           id: 0,
           amount: '0',
-          asset: 'IRON',
+          asset: IRON_ASSET_ID,
           source_address: 'source',
           destination_address: 'destination',
           source_transaction: 'sourcetransaction0',
@@ -99,7 +100,7 @@ describe('BridgeService', () => {
         const runningBridgeRequest2 = {
           id: 1,
           amount: '1',
-          asset: 'IRON',
+          asset: IRON_ASSET_ID,
           source_address: 'source',
           destination_address: 'destination',
           source_transaction: 'sourcetransaction2',
@@ -117,7 +118,7 @@ describe('BridgeService', () => {
         const pendingBridgeRequest = {
           id: 2,
           amount: '1',
-          asset: 'IRON',
+          asset: IRON_ASSET_ID,
           source_address: 'source',
           destination_address: 'destination',
           source_transaction: 'source_transaction1',
