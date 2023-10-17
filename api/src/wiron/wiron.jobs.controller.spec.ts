@@ -11,6 +11,7 @@ import {
 } from 'ethers';
 import { mock } from 'jest-mock-extended';
 import { BridgeService } from '../bridge/bridge.service';
+import { WIRON_CONTRACT_ADDRESS } from '../common/constants';
 import { WIron, WIron__factory } from '../contracts';
 import { TypedContractEvent, TypedEventLog } from '../contracts/common';
 import { TransferWithMetadataEvent } from '../contracts/WIron';
@@ -182,7 +183,7 @@ describe('MintWIronJobsController', () => {
           source_address: event.args[0],
           destination_address: destinationAddress,
           amount: event.args[2].toString(),
-          asset: 'WIRON',
+          asset: WIRON_CONTRACT_ADDRESS,
           source_chain: Chain.ETHEREUM,
           destination_chain: Chain.IRONFISH,
           source_transaction: event.transactionHash,

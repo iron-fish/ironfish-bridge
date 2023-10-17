@@ -171,7 +171,7 @@ export class WIronJobsController {
         source_address: event.args[0],
         destination_address: destinationAddress,
         amount: event.args[2].toString(),
-        asset: 'WIRON',
+        asset: WIRON_CONTRACT_ADDRESS,
         source_chain: Chain.ETHEREUM,
         destination_chain: Chain.IRONFISH,
         source_transaction: event.transactionHash,

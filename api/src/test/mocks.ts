@@ -3,6 +3,7 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BridgeRequestStatus, Chain } from '@prisma/client';
 import { BridgeDataDTO } from '../bridge/types/dto';
+import { IRON_ASSET_ID } from '../common/constants';
 
 export const bridgeRequestDTO = (options: {
   destination_address?: string;
@@ -14,7 +15,7 @@ export const bridgeRequestDTO = (options: {
 }): BridgeDataDTO => ({
   amount: options.amount ?? '100',
   source_address: options.source_address ?? '0x0000000',
-  asset: '51f33a2f14f92735e562dc658a5639279ddca3d5079a6d1242b2a588a9cbf44c',
+  asset: IRON_ASSET_ID,
   source_transaction:
     '00000000000000021a63de16fea25d79f66f092862a893274690000000000000',
   destination_address: options.destination_address ?? '0xfoooooooooooo',

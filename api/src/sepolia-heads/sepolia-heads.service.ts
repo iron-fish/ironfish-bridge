@@ -3,6 +3,10 @@
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { Injectable } from '@nestjs/common';
 import { SepoliaHead } from '@prisma/client';
+import {
+  TEST_USDC_CONTRACT_ADDRESS,
+  WIRON_CONTRACT_ADDRESS,
+} from '../common/constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { BasePrismaClient } from '../prisma/types/base-prisma-client';
 
@@ -13,7 +17,7 @@ export class SepoliaHeadsService {
   async wIronHead(): Promise<SepoliaHead> {
     let record = await this.prisma.sepoliaHead.findFirst({
       where: {
-        asset: 'WIRON',
+        asset: WIRON_CONTRACT_ADDRESS,
       },
     });
     if (!record) {
@@ -21,7 +25,7 @@ export class SepoliaHeadsService {
         data: {
           hash: '0xf1cc4b51c6a75fdf40a14b01eed5f5f6cdc369225557d001e6bca4e4ab308f4f',
           height: 4376698,
-          asset: 'WIRON',
+          asset: WIRON_CONTRACT_ADDRESS,
         },
       });
     }
@@ -37,14 +41,14 @@ export class SepoliaHeadsService {
       create: {
         hash,
         height,
-        asset: 'WIRON',
+        asset: WIRON_CONTRACT_ADDRESS,
       },
       update: {
         hash,
         height,
       },
       where: {
-        asset: 'WIRON',
+        asset: WIRON_CONTRACT_ADDRESS,
       },
     });
   }
@@ -52,7 +56,7 @@ export class SepoliaHeadsService {
   async testUsdcHead(): Promise<SepoliaHead> {
     let record = await this.prisma.sepoliaHead.findFirst({
       where: {
-        asset: 'Test USDC',
+        asset: TEST_USDC_CONTRACT_ADDRESS,
       },
     });
     if (!record) {
@@ -60,7 +64,7 @@ export class SepoliaHeadsService {
         data: {
           hash: '0xf9360b26367916a86f331223575185b48ad996dab3a9901200b21e753e3f3ae0',
           height: 4484401,
-          asset: 'Test USDC',
+          asset: TEST_USDC_CONTRACT_ADDRESS,
         },
       });
     }
@@ -76,14 +80,14 @@ export class SepoliaHeadsService {
       create: {
         hash,
         height,
-        asset: 'Test USDC',
+        asset: TEST_USDC_CONTRACT_ADDRESS,
       },
       update: {
         hash,
         height,
       },
       where: {
-        asset: 'Test USDC',
+        asset: TEST_USDC_CONTRACT_ADDRESS,
       },
     });
   }
