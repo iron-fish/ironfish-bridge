@@ -10,7 +10,7 @@ import {
   it,
 } from '@jest/globals';
 import { HttpStatus, INestApplication } from '@nestjs/common';
-import { BridgeRequestStatus, Chain } from '@prisma/client';
+import { BridgeRequestStatus, Chain, FailureReason } from '@prisma/client';
 import assert from 'assert';
 import request from 'supertest';
 import { ApiConfigService } from '../api-config/api-config.service';
@@ -19,6 +19,7 @@ import { GraphileWorkerService } from '../graphile-worker/graphile-worker.servic
 import { PrismaService } from '../prisma/prisma.service';
 import { bridgeRequestDTO } from '../test/mocks';
 import { bootstrapTestApp } from '../test/test-app';
+import { BridgeController } from './bridge.controller';
 import { BridgeService } from './bridge.service';
 import { BridgeSendRequestDTO, UpdateRequestDTO } from './types/dto';
 
@@ -27,6 +28,7 @@ describe('BridgeController', () => {
   let prisma: PrismaService;
   let config: ApiConfigService;
   let bridgeService: BridgeService;
+  let bridgeController: BridgeController;
   let graphileWorkerService: GraphileWorkerService;
   let API_KEY: string;
   let IRONFISH_BRIDGE_ADDRESS: string;
@@ -37,6 +39,7 @@ describe('BridgeController', () => {
     config = app.get(ApiConfigService);
     bridgeService = app.get(BridgeService);
     graphileWorkerService = app.get(GraphileWorkerService);
+    bridgeController = app.get(BridgeController);
 
     API_KEY = config.get<string>('IRONFISH_BRIDGE_API_KEY');
     IRONFISH_BRIDGE_ADDRESS = config.get<string>('IRONFISH_BRIDGE_ADDRESS');
@@ -450,6 +453,36 @@ describe('BridgeController', () => {
             status: BridgeRequestStatus.PENDING_ON_DESTINATION_CHAIN,
           },
         });
+      });
+    });
+  });
+
+  describe('upsertBridgeSendRequestDTOs', () => {
+    it('creates records, but records failure on invalid asset', async () => {
+      const dto = bridgeRequestDTO({
+        asset: 'invalid asset',
+        status:
+          BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+      });
+
+      const response = await bridgeController.upsertBridgeSendRequestDTOs(
+        [dto],
+        BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+      );
+      const id = Object.keys(response)[0];
+
+      expect(response).toHaveProperty(id, {
+        status: BridgeRequestStatus.FAILED,
+        failureReason: FailureReason.REQUEST_ASSET_NOT_MATCHING,
+      });
+
+      const failed = await prisma.failedBridgeRequest.findFirst({
+        where: { bridge_request_id: Number(id) },
+      });
+      expect(failed).toMatchObject({
+        bridge_request_id: Number(id),
+        error: expect.any(String),
+        failure_reason: FailureReason.REQUEST_ASSET_NOT_MATCHING,
       });
     });
   });

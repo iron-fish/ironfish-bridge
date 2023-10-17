@@ -9,13 +9,14 @@ export const bridgeRequestDTO = (options: {
   destination_address?: string;
   source_address?: string;
   amount?: string;
+  asset?: string;
   status?: BridgeRequestStatus;
   source_burn_transaction?: string;
   destination_transaction?: string;
 }): BridgeDataDTO => ({
   amount: options.amount ?? '100',
   source_address: options.source_address ?? '0x0000000',
-  asset: IRON_ASSET_ID,
+  asset: options.asset ?? IRON_ASSET_ID,
   source_transaction:
     '00000000000000021a63de16fea25d79f66f092862a893274690000000000000',
   destination_address: options.destination_address ?? '0xfoooooooooooo',
