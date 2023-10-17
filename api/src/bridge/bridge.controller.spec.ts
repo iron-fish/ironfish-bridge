@@ -386,6 +386,100 @@ describe('BridgeController', () => {
     });
   });
 
+  describe('GET /bridge/next_mint_requests', () => {
+    describe('with a missing api key', () => {
+      it('returns a 401', async () => {
+        const { body } = await request(app.getHttpServer())
+          .get('/bridge/next_mint_requests')
+          .expect(HttpStatus.UNAUTHORIZED);
+
+        expect(body).toMatchSnapshot();
+      });
+    });
+
+    describe('when multiple mints requests are requested', () => {
+      it('returns the records', async () => {
+        const mockData = [
+          {
+            id: 0,
+            amount: '0',
+            asset: IRON_ASSET_ID,
+            source_address: 'source',
+            destination_address: 'destination',
+            source_transaction: 'source_transaction0',
+            destination_transaction: null,
+            source_burn_transaction: null,
+            source_chain: Chain.ETHEREUM,
+            destination_chain: Chain.IRONFISH,
+            status:
+              BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
+            failure_reason: null,
+            created_at: new Date(),
+            updated_at: new Date(),
+            started_at: new Date(),
+            completed_at: null,
+          },
+          {
+            id: 1,
+            amount: '1',
+            asset: IRON_ASSET_ID,
+            source_address: 'source',
+            destination_address: 'destination',
+            source_transaction: 'source_transaction',
+            destination_transaction: null,
+            source_burn_transaction: null,
+            source_chain: Chain.ETHEREUM,
+            destination_chain: Chain.IRONFISH,
+            status:
+              BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
+            failure_reason: null,
+            created_at: new Date(),
+            updated_at: new Date(),
+            started_at: new Date(),
+            completed_at: null,
+          },
+        ];
+        jest
+          .spyOn(bridgeService, 'nextMintBridgeRequests')
+          .mockResolvedValueOnce(mockData);
+
+        const { body } = await request(app.getHttpServer())
+          .get('/bridge/next_mint_requests')
+          .set('Authorization', `Bearer ${API_KEY}`)
+          .query({ count: 2 })
+          .expect(HttpStatus.OK);
+
+        const { data } = body;
+        expect(data as unknown[]).toMatchObject([
+          {
+            id: mockData[0].id,
+            amount: mockData[0].amount,
+            asset: mockData[0].asset,
+            source_address: mockData[0].source_address,
+            destination_address: mockData[0].destination_address,
+            source_transaction: mockData[0].source_transaction,
+            destination_transaction: mockData[0].destination_transaction,
+            source_chain: mockData[0].source_chain,
+            destination_chain: mockData[0].destination_chain,
+            status: mockData[0].status,
+          },
+          {
+            id: mockData[1].id,
+            amount: mockData[1].amount,
+            asset: mockData[1].asset,
+            source_address: mockData[1].source_address,
+            destination_address: mockData[1].destination_address,
+            source_transaction: mockData[1].source_transaction,
+            destination_transaction: mockData[1].destination_transaction,
+            source_chain: mockData[1].source_chain,
+            destination_chain: mockData[1].destination_chain,
+            status: mockData[1].status,
+          },
+        ]);
+      });
+    });
+  });
+
   describe('POST /bridge/update_requests', () => {
     describe('failure cases', () => {
       it('nonexistent request id fails', async () => {

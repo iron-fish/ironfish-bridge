@@ -158,4 +158,19 @@ export class BridgeService {
       take: count ?? 1,
     });
   }
+
+  async nextMintBridgeRequests(count?: number): Promise<BridgeRequest[]> {
+    return this.prisma.bridgeRequest.findMany({
+      where: {
+        source_chain: Chain.ETHEREUM,
+        destination_chain: Chain.IRONFISH,
+        status:
+          BridgeRequestStatus.PENDING_DESTINATION_MINT_TRANSACTION_CREATION,
+      },
+      orderBy: {
+        created_at: Prisma.SortOrder.asc,
+      },
+      take: count ?? 1,
+    });
+  }
 }
