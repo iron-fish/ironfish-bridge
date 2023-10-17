@@ -221,6 +221,23 @@ export class BridgeController {
     };
   }
 
+  @Get('next_mint_requests')
+  @UseGuards(ApiKeyGuard)
+  async nextMintBridgeRequests(
+    @Query(
+      new ValidationPipe({
+        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
+        transform: true,
+      }),
+    )
+    { count }: NextBridgeRequestsDto,
+  ): Promise<List<BridgeRequest>> {
+    return {
+      object: 'list',
+      data: await this.bridgeService.nextMintBridgeRequests(count),
+    };
+  }
+
   @Get('next_burn_requests')
   @UseGuards(ApiKeyGuard)
   async nextBurnBridgeRequests(
