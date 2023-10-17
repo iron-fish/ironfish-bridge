@@ -1,5 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`BridgeController GET /bridge/next_burn_requests with a missing api key returns a 401 1`] = `
+Object {
+  "message": "Unauthorized",
+  "statusCode": 401,
+}
+`;
+
 exports[`BridgeController GET /bridge/next_release_requests with a missing api key returns a 401 1`] = `
 Object {
   "message": "Unauthorized",

@@ -12,7 +12,7 @@ import {
 import { mock } from 'jest-mock-extended';
 import { BridgeService } from '../bridge/bridge.service';
 import { TEST_USDC_CONTRACT_ADDRESS } from '../common/constants';
-import { TestUSDC, TestUSDC__factory } from '../contracts';
+import { TestUSDC } from '../contracts';
 import { TypedContractEvent, TypedEventLog } from '../contracts/common';
 import { TransferWithMetadataEvent } from '../contracts/WIron';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
@@ -155,8 +155,6 @@ describe('TestUsdcJobsController', () => {
 
   describe('release', () => {
     it('calls release on the TestUSDC smart contract', async () => {
-      const testUsdcMock = mock<TestUSDC>();
-
       const amount = '100';
       const destination_address = '0x6637ef23a4378b2c9df51477004c2e2994a2cf4b';
       const request = await bridgeService.upsertRequest(
@@ -167,9 +165,16 @@ describe('TestUsdcJobsController', () => {
             BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
         }),
       );
+
+      const testUsdcMock = mock<TestUSDC>();
+      const testUsdcProviderMock = mock<ethers.InfuraProvider>();
       jest
-        .spyOn(TestUSDC__factory, 'connect')
-        .mockImplementation(() => testUsdcMock);
+        .spyOn(testUsdcJobsController, 'connectTestUsdc')
+        .mockImplementation(() => ({
+          contract: testUsdcMock,
+          provider: testUsdcProviderMock,
+        }));
+
       const testUsdcRelease = jest
         .spyOn(testUsdcMock, 'transfer')
         .mockImplementationOnce(
