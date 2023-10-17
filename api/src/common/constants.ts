@@ -7,4 +7,5 @@ export const SEPOLIA_BLOCK_TIME_MS = 15 * 1000;
 export const WIRON_CONTRACT_ADDRESS =
   '0x3de166740d64d522abfda77d9d878dfedfdeeede';
 
-export const TEST_USDC_CONTRACT_ADDRESS = 'foo';
+export const TEST_USDC_CONTRACT_ADDRESS =
+  '0xe6794acc5830b34ae0e86c1801603a17e3ca7c11';

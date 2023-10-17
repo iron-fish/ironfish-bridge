@@ -53,12 +53,13 @@ model IronFishTestnetHead {
   @@map("iron_fish_testnet_head")
 }
 
-model WIronSepoliaHead {
-  id     Int    @id
+model SepoliaHead {
+  id     Int    @id @default(autoincrement())
   hash   String @db.VarChar
   height Int
+  asset  String @db.VarChar @unique
 
-  @@map("wiron_sepolia_head")
+  @@map("sepolia_heads")
 }
 
 enum Chain {

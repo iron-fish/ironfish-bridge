@@ -7,16 +7,18 @@ import { BridgeModule } from '../bridge/bridge.module';
 import { GraphileWorkerModule } from '../graphile-worker/graphile-worker.module';
 import { LoggerModule } from '../logger/logger.module';
 import { PrismaModule } from '../prisma/prisma.module';
-import { TestUSDCJobsController } from './test-usdc.jobs.controller';
+import { SepoliaHeadsModule } from '../sepolia-heads/sepolia-heads.module';
+import { TestUsdcJobsController } from './test-usdc.jobs.controller';
 
 @Module({
-  controllers: [TestUSDCJobsController],
+  controllers: [TestUsdcJobsController],
   imports: [
     ApiConfigModule,
     BridgeModule,
     GraphileWorkerModule,
     LoggerModule,
     PrismaModule,
+    SepoliaHeadsModule,
   ],
 })
-export class TestUSDCJobsModule {}
+export class TestUsdcJobsModule {}

@@ -7,7 +7,7 @@ import { BridgeModule } from '../bridge/bridge.module';
 import { GraphileWorkerModule } from '../graphile-worker/graphile-worker.module';
 import { LoggerModule } from '../logger/logger.module';
 import { PrismaModule } from '../prisma/prisma.module';
-import { WIronSepoliaHeadModule } from '../wiron-sepolia-head/wiron-sepolia-head.module';
+import { SepoliaHeadsModule } from '../sepolia-heads/sepolia-heads.module';
 import { WIronJobsController } from './wiron.jobs.controller';
 
 @Module({
@@ -18,7 +18,7 @@ import { WIronJobsController } from './wiron.jobs.controller';
     GraphileWorkerModule,
     LoggerModule,
     PrismaModule,
-    WIronSepoliaHeadModule,
+    SepoliaHeadsModule,
   ],
 })
 export class WIronJobsModule {}
