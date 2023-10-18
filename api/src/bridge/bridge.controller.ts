@@ -63,7 +63,7 @@ export class BridgeController {
       destination_chain: req.destination_chain,
       status: req.status,
     };
-    const requests = await this.bridgeService.findWhere(where, req.count ?? 1);
+    const requests = await this.bridgeService.findWhere(where, req.count);
     return { requests };
   }
 
