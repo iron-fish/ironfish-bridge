@@ -28,6 +28,7 @@ import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
 import { BridgeService } from './bridge.service';
 import {
   BridgeRetrieveDTO,
+  BridgeRetrieveRequest,
   BridgeSendRequestDTO,
   BridgeSendResponseDTO,
   HeadHash,
@@ -55,14 +56,15 @@ export class BridgeController {
         transform: true,
       }),
     )
-    { ids }: { ids: number[] },
+    req: BridgeRetrieveRequest,
   ): Promise<BridgeRetrieveDTO> {
-    const requests = await this.bridgeService.findByIds(ids);
-    const map: BridgeRetrieveDTO = {};
-    for (const id of ids) {
-      map[id] = requests.find((r) => r.id === id) ?? null;
-    }
-    return map;
+    const where = {
+      source_chain: req.source_chain,
+      destination_chain: req.destination_chain,
+      status: req.status,
+    };
+    const requests = await this.bridgeService.findWhere(where, req.count ?? 1);
+    return { requests };
   }
 
   @UseGuards(ApiKeyGuard)

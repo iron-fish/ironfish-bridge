@@ -41,6 +41,19 @@ export class BridgeService {
     });
   }
 
+  async findWhere(
+    where: Prisma.BridgeRequestWhereInput,
+    count: number,
+  ): Promise<BridgeRequest[]> {
+    return this.prisma.bridgeRequest.findMany({
+      where,
+      orderBy: {
+        id: Prisma.SortOrder.asc,
+      },
+      take: count,
+    });
+  }
+
   async findBySourceTransaction(
     sourceTransaction: string,
   ): Promise<BridgeRequest | null> {

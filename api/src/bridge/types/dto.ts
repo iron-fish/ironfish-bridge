@@ -21,8 +21,15 @@ export type BridgeDataDTO = {
   status: BridgeRequestStatus;
 };
 
+export type BridgeRetrieveRequest = {
+  source_chain?: Chain;
+  destination_chain?: Chain;
+  status?: BridgeRequestStatus;
+  count?: number;
+};
+
 export type BridgeRetrieveDTO = {
-  [keyof: AddressFk]: BridgeDataDTO | null;
+  requests: BridgeDataDTO[];
 };
 
 export type BridgeSendRequestDTO = {
