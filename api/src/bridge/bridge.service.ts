@@ -42,7 +42,7 @@ export class BridgeService {
 
   async findWhere(
     where: Prisma.BridgeRequestWhereInput,
-    count: number,
+    count: number | undefined,
   ): Promise<BridgeRequest[]> {
     return this.prisma.bridgeRequest.findMany({
       where,
