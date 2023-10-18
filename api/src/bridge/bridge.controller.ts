@@ -8,20 +8,14 @@ import {
   HttpCode,
   HttpStatus,
   Post,
-  Query,
   UseGuards,
   ValidationPipe,
 } from '@nestjs/common';
-import {
-  BridgeRequest,
-  BridgeRequestStatus,
-  FailureReason,
-} from '@prisma/client';
+import { BridgeRequestStatus, FailureReason } from '@prisma/client';
 import assert from 'assert';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
 import { SupportedAssets } from '../common/constants';
-import { List } from '../common/interfaces/list';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';
@@ -36,7 +30,6 @@ import {
   UpdateRequestDTO,
   UpdateResponseDTO,
 } from './types/dto';
-import { NextBridgeRequestsDto } from './types/next-bridge-requests.dto';
 
 @Controller('bridge')
 export class BridgeController {
@@ -202,57 +195,6 @@ export class BridgeController {
       response[transaction.id] = { status: transaction.status };
     }
     return response;
-  }
-
-  @Get('next_release_requests')
-  @UseGuards(ApiKeyGuard)
-  async nextReleaseBridgeRequests(
-    @Query(
-      new ValidationPipe({
-        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        transform: true,
-      }),
-    )
-    { count }: NextBridgeRequestsDto,
-  ): Promise<List<BridgeRequest>> {
-    return {
-      object: 'list',
-      data: await this.bridgeService.nextReleaseBridgeRequests(count),
-    };
-  }
-
-  @Get('next_mint_requests')
-  @UseGuards(ApiKeyGuard)
-  async nextMintBridgeRequests(
-    @Query(
-      new ValidationPipe({
-        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        transform: true,
-      }),
-    )
-    { count }: NextBridgeRequestsDto,
-  ): Promise<List<BridgeRequest>> {
-    return {
-      object: 'list',
-      data: await this.bridgeService.nextMintBridgeRequests(count),
-    };
-  }
-
-  @Get('next_burn_requests')
-  @UseGuards(ApiKeyGuard)
-  async nextBurnBridgeRequests(
-    @Query(
-      new ValidationPipe({
-        errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY,
-        transform: true,
-      }),
-    )
-    { count }: NextBridgeRequestsDto,
-  ): Promise<List<BridgeRequest>> {
-    return {
-      object: 'list',
-      data: await this.bridgeService.nextBurnBridgeRequests(count),
-    };
   }
 
   async upsertBridgeSendRequestDTOs(
