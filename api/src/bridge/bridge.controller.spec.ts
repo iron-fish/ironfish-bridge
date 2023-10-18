@@ -60,25 +60,25 @@ describe('BridgeController', () => {
   });
 
   describe('POST /bridge/retrieve', () => {
-    describe('when data is requested by id', () => {
-      it('is successfully returns if fk is in db, null if not', async () => {
-        const unsavedId = 1234567;
-        const requestData = bridgeRequestDTO({});
-        const foo = await prisma.bridgeRequest.create({
-          data: requestData,
-        });
-        const { body } = await request(app.getHttpServer())
-          .post('/bridge/retrieve')
-          .set('Authorization', `Bearer ${API_KEY}`)
-          .send({ ids: [foo.id, unsavedId] })
-          .expect(HttpStatus.OK);
+    it('successfully returns requests', async () => {
+      const unsavedId = 1234567;
+      const requestData = bridgeRequestDTO({
+        source_chain: Chain.ETHEREUM,
+        destination_chain: Chain.IRONFISH,
+        status:
+          BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
+      });
+      const foo = await prisma.bridgeRequest.create({
+        data: requestData,
+      });
+      const { body } = await request(app.getHttpServer())
+        .post('/bridge/retrieve')
+        .set('Authorization', `Bearer ${API_KEY}`)
+        .send({ ids: [foo.id, unsavedId] })
+        .expect(HttpStatus.OK);
 
-        expect(body).toMatchObject({
-          [foo.id]: {
-            ...requestData,
-          },
-          [unsavedId]: null,
-        });
+      expect(body).toMatchObject({
+        requests: [requestData],
       });
     });
   });
