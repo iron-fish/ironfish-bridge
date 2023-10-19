@@ -8,6 +8,7 @@ import { ethers } from 'ethers';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { BridgeService } from '../bridge/bridge.service';
 import {
+  IF_TEST_USDC_ASSET_ID,
   SEPOLIA_BLOCK_TIME_MS,
   SEPOLIA_EXPLORER_URL,
   TEST_USDC_CONTRACT_ADDRESS,
@@ -172,7 +173,7 @@ export class TestUsdcJobsController {
         source_address: event.args[0],
         destination_address: destinationAddress,
         amount: event.args[2].toString(),
-        asset: TEST_USDC_CONTRACT_ADDRESS,
+        asset: IF_TEST_USDC_ASSET_ID,
         source_chain: Chain.ETHEREUM,
         destination_chain: Chain.IRONFISH,
         source_transaction: event.transactionHash,
