@@ -158,6 +158,14 @@ describe('BridgeController', () => {
     it('marks the release for confirmation', async () => {
       const dto = bridgeRequestDTO({});
 
+      const bridgeRequest = await bridgeService.upsertRequests([
+        {
+          ...dto,
+          status:
+            BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
+        },
+      ]);
+
       const addJobMock = jest
         .spyOn(graphileWorkerService, 'addJob')
         .mockImplementationOnce(jest.fn());
@@ -166,22 +174,22 @@ describe('BridgeController', () => {
         .post('/bridge/release')
         .set('Authorization', `Bearer ${API_KEY}`)
         .send({
-          releases: [dto],
+          releases: [{ id: bridgeRequest[0].id }],
         })
         .expect(HttpStatus.CREATED);
 
       expect(addJobMock).toHaveBeenCalledTimes(1);
 
-      const bridgeRequest = await bridgeService.findBySourceTransaction(
-        dto.source_transaction,
-      );
+      const updatedRequest = await bridgeService.findByIds([
+        bridgeRequest[0].id,
+      ]);
       assert.ok(bridgeRequest);
-      expect(bridgeRequest.status).toBe(
+      expect(updatedRequest[0].status).toBe(
         BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
       );
 
       expect(response.body).toMatchObject({
-        [bridgeRequest.id]: {
+        [bridgeRequest[0].id]: {
           status:
             BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
         },
