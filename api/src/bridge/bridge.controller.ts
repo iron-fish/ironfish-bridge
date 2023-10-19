@@ -27,6 +27,7 @@ import {
   BridgeSendResponseDTO,
   HeadHash,
   OptionalHeadHash,
+  ReleaseRequestDTO,
   UpdateRequestDTO,
   UpdateResponseDTO,
 } from './types/dto';
@@ -116,23 +117,39 @@ export class BridgeController {
         transform: true,
       }),
     )
-    { releases }: { releases: BridgeSendRequestDTO[] },
-  ): Promise<BridgeSendResponseDTO> {
-    const response = await this.upsertBridgeSendRequestDTOs(
-      releases,
-      BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+    { releases }: { releases: ReleaseRequestDTO[] },
+  ): Promise<UpdateResponseDTO> {
+    const requests = await this.bridgeService.findByIds(
+      releases.map((r) => r.id),
     );
-    for (const key in response) {
-      if (response[key].status === BridgeRequestStatus.FAILED) {
+    const response: UpdateResponseDTO = {};
+    for (const release of releases) {
+      const request = requests.find((r) => r.id === release.id) ?? null;
+
+      if (!request) {
+        response[release.id] = { status: null };
         continue;
       }
+
+      await this.bridgeService.updateRequest({
+        id: release.id,
+        status:
+          BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+      });
+
+      response[release.id] = {
+        status:
+          BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+      };
+
       await this.graphileWorkerService.addJob(
         GraphileWorkerPattern.RELEASE_TEST_USDC,
         {
-          bridgeRequest: Number(key),
+          bridgeRequest: request.id,
         },
       );
     }
+
     return response;
   }
 

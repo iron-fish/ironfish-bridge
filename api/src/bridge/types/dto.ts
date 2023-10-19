@@ -67,3 +67,7 @@ export type UpdateRequestDTO = {
 export type UpdateResponseDTO = {
   [keyof: AddressFk]: { status: BridgeRequestStatus | null };
 };
+
+export type ReleaseRequestDTO = {
+  id: AddressFk;
+};
