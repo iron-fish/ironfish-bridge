@@ -145,7 +145,7 @@ export class BridgeController {
       await this.graphileWorkerService.addJob(
         GraphileWorkerPattern.RELEASE_TEST_USDC,
         {
-          bridgeRequest: request.id,
+          bridgeRequestId: request.id,
         },
       );
     }

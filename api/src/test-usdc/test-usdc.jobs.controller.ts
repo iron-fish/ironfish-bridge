@@ -89,10 +89,13 @@ export class TestUsdcJobsController {
     const bridgeRequest = await this.bridgeService.find(
       options.bridgeRequestId,
     );
-    if (!bridgeRequest) {
-      this.logger.error(
-        `No bridge request found for ${options.bridgeRequestId}`,
-        '',
+    if (bridgeRequest === null) {
+      const error = `No bridge request found for ${options.bridgeRequestId}`;
+      this.logger.error(error, '');
+      await this.bridgeService.createFailedRequest(
+        null,
+        FailureReason.REQUEST_INVALID_STATUS,
+        error,
       );
       return { requeue: false };
     }
@@ -101,9 +104,12 @@ export class TestUsdcJobsController {
       bridgeRequest.status !==
       BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION
     ) {
-      this.logger.error(
-        `Invalid status for releasing TestUSDC. Bridge request '${options.bridgeRequestId}'`,
-        '',
+      const error = `Invalid status for releasing TestUSDC. Bridge request '${options.bridgeRequestId}'`;
+      this.logger.error(error, '');
+      await this.bridgeService.createFailedRequest(
+        null,
+        FailureReason.REQUEST_INVALID_STATUS,
+        error,
       );
       return { requeue: false };
     }
