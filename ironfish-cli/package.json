@@ -1,0 +1,25 @@
+{
+  "name": "ironfish-bridge-cli",
+  "version": "0.0.0",
+  "description": "Iron Fish Node services to connect Iron Fish to EVM chains",
+  "private": true,
+  "author": "IF Labs",
+  "license": "MPL-2.0",
+  "homepage": "https://github.com/iron-fish/ironfish-bridge-api",
+  "scripts": {
+    "build": "tsc -b",
+    "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
+    "lint:fix": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/ --fix",
+    "lint:deprecated": "yarn lint --rule \"deprecation/deprecation: warn\"",
+    "start:dev": "node start",
+    "start": "yarn build && yarn start:js",
+    "start:js": "cross-env OCLIF_TS_NODE=0 IRONFISH_DEBUG=1 node --expose-gc --inspect=:0 --inspect-publish-uid=http --enable-source-maps bin/run",
+    "postpack": "rimraf oclif.manifest.json",
+    "clean": "rimraf build",
+    "prepack": "rimraf build && yarn build && oclif manifest && oclif readme",
+    "oclif:version": "oclif readme && git add README.md"
+  },
+  "devDependencies": {
+    "typescript": "^5.2.2"
+  }
+}
