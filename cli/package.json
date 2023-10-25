@@ -6,6 +6,8 @@
   "author": "IF Labs",
   "license": "MPL-2.0",
   "homepage": "https://github.com/iron-fish/ironfish-bridge-api",
+  "main": "build/src/index.js",
+  "types": "build/src/index.d.ts",
   "scripts": {
     "build": "tsc -b",
     "lint": "tsc -b && eslint --ext .ts,.tsx,.js,.jsx src/",
