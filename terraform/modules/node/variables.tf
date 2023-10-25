@@ -12,6 +12,13 @@ variable "aws_subnet_private" {
   default     = []
 }
 
+variable "aws_efs" {
+  description = "The AWS EFS to store files on"
+  type = object({
+    id = string
+  })
+}
+
 variable "aws_vpc" {
   description = "The AWS VPC to put the node in"
   type = object({

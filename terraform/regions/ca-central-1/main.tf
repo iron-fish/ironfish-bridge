@@ -13,6 +13,10 @@ variable "az" {
   default = "ca-central-1"
 }
 
+variable "bridge_name" {
+  default = "ironfish-bridge-node"
+}
+
 provider "aws" {
   shared_credentials_file = "$HOME/.aws/credentials"
   profile                 = "default"
@@ -30,8 +34,9 @@ module "node" {
   aws_route53_zone                  = module.aws.route53_zone_ironfish
   aws_subnet_private                = module.aws.subnet_ironfish_private
   aws_vpc                           = module.aws.vpc_ironfish
-  environment_name                  = "ironfish-bridge-node"
-  node_name                         = "ironfish-bridge-node"
+  aws_efs                           = module.aws.efs_ironfish
+  environment_name                  = var.bridge_name
+  node_name                         = var.bridge_name
   instance_type                     = "t3.small"
   rpc_allowed_cidr_blocks           = ["0.0.0.0/0"]
   network_id                        = 1

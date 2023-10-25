@@ -18,6 +18,14 @@ data "archive_file" "deployment_bundle" {
     })
     filename = "docker-compose.yml"
   }
+
+  source {
+    content = templatefile("${path.module}/deployment/.ebextensions/01-storage-efs-mountfilesystem.config.tpl", {
+      file_system_id  = var.aws_efs.id
+      mount_directory = "/efs"
+    })
+    filename = ".ebextensions/01-storage-efs-mountfilesystem.config"
+  }
 }
 
 resource "aws_s3_bucket" "deployment_bundle_bucket" {
