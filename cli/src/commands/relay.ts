@@ -10,9 +10,9 @@ import {
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { isAddress } from 'web3-validator'
+import { BridgeApi } from '../bridgeApi'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
-import { WebApi } from '../webApi'
 
 export default class BridgeRelay extends IronfishCommand {
   static description = `Relay Iron Fish deposits to the Sepolia bridge contract`
@@ -73,7 +73,7 @@ export default class BridgeRelay extends IronfishCommand {
       this.exit(1)
     }
 
-    const api = new WebApi({ host: flags.endpoint, token: flags.token })
+    const api = new BridgeApi({ host: flags.endpoint, token: flags.token })
 
     const confirmations =
       flags.confirmations ?? this.sdk.config.get('confirmations')
@@ -89,7 +89,7 @@ export default class BridgeRelay extends IronfishCommand {
   }
 
   async syncBlocks(
-    api: WebApi,
+    api: BridgeApi,
     incomingViewKey: string,
     outgoingViewKey: string,
     bridgeAddress: string,
@@ -102,7 +102,7 @@ export default class BridgeRelay extends IronfishCommand {
     this.log('Watching with incoming view key:', incomingViewKey)
     this.log('Watching with outgoing view key:', outgoingViewKey)
 
-    head = head ?? (await api.getBridgeHead())
+    head = head ?? (await api.getHead())
 
     if (!head) {
       const chainInfo = await client.chain.getChainInfo()
@@ -150,14 +150,13 @@ export default class BridgeRelay extends IronfishCommand {
   }
 
   async commit(
-    api: WebApi,
+    api: BridgeApi,
     response: GetTransactionStreamResponse,
     bridgeAddress: string,
   ): Promise<void> {
     Assert.isNotUndefined(response)
 
-    const { requests: pendingBurnRequests } =
-      await api.getBridgePendingBurnRequests()
+    const { requests: pendingBurnRequests } = await api.getPendingBurnRequests()
 
     const pendingBurnTransactions: Map<string, number[]> = new Map()
     for (const request of pendingBurnRequests) {
@@ -249,7 +248,7 @@ export default class BridgeRelay extends IronfishCommand {
     }
 
     if (confirms.length > 0) {
-      await api.updateBridgeRequests(confirms)
+      await api.updateRequests(confirms)
     }
 
     if (releases.length > 0) {
@@ -257,14 +256,14 @@ export default class BridgeRelay extends IronfishCommand {
     }
 
     if (sends.length > 0) {
-      await api.sendBridgeDeposits(sends)
+      await api.send(sends)
     }
 
     if (burns.length > 0) {
       await api.bridgeBurn(burns)
     }
 
-    await api.setBridgeHead(response.block.hash)
+    await api.setHead(response.block.hash)
   }
 
   decodeEthAddress(memoHex: string): string {
