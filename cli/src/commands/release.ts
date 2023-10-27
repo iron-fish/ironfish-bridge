@@ -7,12 +7,12 @@ import {
   RawTransactionSerde,
   RpcConnectionError,
   RpcSocketClient,
-  WebApi,
 } from '@ironfish/sdk'
 import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
 import { Flags } from '@oclif/core'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
+import { WebApi } from '../webApi'
 
 const MAX_RECIPIENTS_PER_TRANSACTION = 10
 
@@ -26,6 +26,7 @@ export default class Release extends IronfishCommand {
       description: 'API host to sync to',
       parse: (input: string) => Promise.resolve(input.trim()),
       env: 'IRONFISH_API_HOST',
+      required: true,
     }),
     token: Flags.string({
       char: 't',
