@@ -30,11 +30,11 @@ variable "aws_vpc" {
   })
 }
 
-variable "ingress_security_group" {
+variable "ingress_security_groups" {
     description = "Security group to allow ingress from"
-    type = object({
+    type = list(object({
         id = string
-    })
+    }))
 }
 
 variable "instance_type" {

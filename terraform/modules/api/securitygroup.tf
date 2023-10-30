@@ -21,14 +21,14 @@ resource "aws_security_group" "ironfish_api_securitygroup" {
     from_port   = var.PORT
     to_port     = var.PORT
     protocol    = "tcp"
-    security_groups = [var.ingress_security_group.id]
+    security_groups = [for security_group in var.ingress_security_groups : security_group.id]
   }
 
   ingress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    security_groups = [var.ingress_security_group.id]
+    security_groups =  [for security_group in var.ingress_security_groups : security_group.id]
   }
 
   egress {

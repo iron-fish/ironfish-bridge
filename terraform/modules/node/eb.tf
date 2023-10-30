@@ -1,5 +1,5 @@
 resource "aws_elastic_beanstalk_application" "ironfish_nodes" {
-  name = "ironfish-nodes"
+  name = "${var.environment_name}-node"
 }
 
 resource "aws_elastic_beanstalk_environment" "ironfish_node" {

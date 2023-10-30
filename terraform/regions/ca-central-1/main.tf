@@ -41,6 +41,10 @@ variable "outgoing_view_key" {
   
 }
 
+variable "api_name" {
+  default = "ironfish-bridge-api"
+}
+
 
 
 provider "aws" {
@@ -79,8 +83,10 @@ module "relay" {
   node_name                         = "${var.bridge_name}-relay"
   instance_type                     = "t3.small"
   network_id                        = 1
+  rpc_allowed_cidr_blocks           = []
   instance_connect_cidrs            = [var.ec2_instance_connect_cidr]
-  command                           = "service:bridge:relay --endpoint=\"${module.api.endpoint_url}\" --token=\"${var.api_token}\" --incomingViewKey=\"${var.incoming_view_key}\" --outgoingViewKey=\"${var.outgoing_view_key}\" --address=\"${var.bridge_address}\""
+  // hardcoding endpoint instead of ${module.api.endpoint_url} because of circular dependency
+  command                           = "service:bridge:relay --endpoint=\"${var.api_name}.${var.az}.elasticbeanstalk.com\" --token=\"${var.api_token}\" --incomingViewKey=\"${var.incoming_view_key}\" --outgoingViewKey=\"${var.outgoing_view_key}\" --address=\"${var.bridge_address}\""
 }
 
 module "release" {
@@ -92,8 +98,10 @@ module "release" {
   node_name                         = "${var.bridge_name}-release"
   instance_type                     = "t3.small"
   network_id                        = 1
+  rpc_allowed_cidr_blocks           = []
   instance_connect_cidrs            = [var.ec2_instance_connect_cidr]
-  command                           = "service:bridge:release --endpoint=\"${module.api.endpoint_url}\" --token=\"${var.api_token}\""
+  // hardcoding endpoint instead of ${module.api.endpoint_url} because of circular dependency
+  command                           = "service:bridge:release --endpoint=\"${var.api_name}.${var.az}.elasticbeanstalk.com\" --token=\"${var.api_token}\""
 }
 
 
@@ -101,12 +109,12 @@ module "api" {
   source = "../../modules/api"
 
   # Application and region
-  environment_name = "${var.bridge_name}-api"
+  environment_name = var.api_name
   aws_region           = "ca-central-1"
   aws_route53_zone                  = module.aws.route53_zone_ironfish
   aws_subnet_private                = module.aws.subnet_ironfish_private
   aws_vpc                           = module.aws.vpc_ironfish
-  ingress_security_group            = module.node.security_group
+  ingress_security_groups           = [module.relay.security_group, module.release.security_group]
   instance_type                     = "t3.small"
 
   # API ENV Variables
