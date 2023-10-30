@@ -44,18 +44,18 @@ resource "aws_elastic_beanstalk_environment" "api" {
   }
 
   setting {
+    namespace = "aws:elb:loadbalancer"
+    name      = "SecurityGroups"
+    value     = aws_security_group.ironfish_api_lb_securitygroup.id
+  }
+
+  setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "SecurityGroups"
     value     = aws_security_group.ironfish_api_securitygroup.id
   }
 
   # Example for DATABASE_URL, replace with actual values or Terraform variables
-
-  setting {
-    namespace = "aws:elasticbeanstalk:application:environment"
-    name      = "PORT"
-    value     = var.PORT
-  }
 
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"

@@ -11,3 +11,7 @@ This submodule assumes the user will run the bridge on AWS. It is possible to de
 ## Modules
 
 1. The `modules/node` module contains everything required for deploying an ironfish node from source. The node that is referenced is the latest release version seen in the [github repo](https://github.com/iron-fish/ironfish/releases)
+
+## tfvars
+
+Set the `terraform.tfvars` needed to keep your system secure and connected

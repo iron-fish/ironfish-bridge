@@ -41,6 +41,10 @@ variable "outgoing_view_key" {
   
 }
 
+variable "rpc_auth_token" {
+  default = "d3893f3acb07511796fae3c198e84883db8b3c8fdd819096cdfa90dcbe36055e"
+}
+
 variable "api_name" {
   default = "ironfish-bridge-api"
 }
@@ -61,6 +65,7 @@ module "aws" {
 
 module "node" {
   source                            = "../../modules/node"
+  aws_efs                           = module.aws.efs_ironfish
   aws_route53_zone                  = module.aws.route53_zone_ironfish
   aws_subnet_private                = module.aws.subnet_ironfish_private
   aws_vpc                           = module.aws.vpc_ironfish
@@ -68,6 +73,7 @@ module "node" {
   node_name                         = "${var.bridge_name}-node"
   instance_type                     = "t3.small"
   rpc_allowed_cidr_blocks           = ["0.0.0.0/0"]
+  rpc_auth_token                    = var.rpc_auth_token
   network_id                        = 1
   instance_connect_cidrs            = [var.ec2_instance_connect_cidr]
 
@@ -75,33 +81,29 @@ module "node" {
 
 
 module "relay" {
-  source                            = "../../modules/node"
+  source                            = "../../modules/cli"
   aws_route53_zone                  = module.aws.route53_zone_ironfish
   aws_subnet_private                = module.aws.subnet_ironfish_private
   aws_vpc                           = module.aws.vpc_ironfish
   environment_name                  = "${var.bridge_name}-relay"
-  node_name                         = "${var.bridge_name}-relay"
   instance_type                     = "t3.small"
-  network_id                        = 1
-  rpc_allowed_cidr_blocks           = []
   instance_connect_cidrs            = [var.ec2_instance_connect_cidr]
   // hardcoding endpoint instead of ${module.api.endpoint_url} because of circular dependency
-  command                           = "service:bridge:relay --endpoint=\"${var.api_name}.${var.az}.elasticbeanstalk.com\" --token=\"${var.api_token}\" --incomingViewKey=\"${var.incoming_view_key}\" --outgoingViewKey=\"${var.outgoing_view_key}\" --address=\"${var.bridge_address}\""
+  // forcing install of linux nodejs binary, not installing automatically
+  command                           = "npm i && npm i @ironfish/rust-nodejs-linux-x64-gnu && npm start -- relay --endpoint=http://${var.api_name}.${var.az}.elasticbeanstalk.com --token=${var.api_token} --incomingViewKey=${var.incoming_view_key} --outgoingViewKey=${var.outgoing_view_key} --address=${var.bridge_address} --rpc.auth=${var.rpc_auth_token}"
 }
 
 module "release" {
-  source                            = "../../modules/node"
+  source                            = "../../modules/cli"
   aws_route53_zone                  = module.aws.route53_zone_ironfish
   aws_subnet_private                = module.aws.subnet_ironfish_private
   aws_vpc                           = module.aws.vpc_ironfish
   environment_name                  = "${var.bridge_name}-release"
-  node_name                         = "${var.bridge_name}-release"
   instance_type                     = "t3.small"
-  network_id                        = 1
-  rpc_allowed_cidr_blocks           = []
   instance_connect_cidrs            = [var.ec2_instance_connect_cidr]
   // hardcoding endpoint instead of ${module.api.endpoint_url} because of circular dependency
-  command                           = "service:bridge:release --endpoint=\"${var.api_name}.${var.az}.elasticbeanstalk.com\" --token=\"${var.api_token}\""
+  // forcing install of linux nodejs binary, not installing automatically
+  command                           = "npm i && npm i @ironfish/rust-nodejs-linux-x64-gnu && npm start -- release --endpoint=http://${var.api_name}.${var.az}.elasticbeanstalk.com --token=${var.api_token} --rpc.auth=${var.rpc_auth_token}"
 }
 
 
