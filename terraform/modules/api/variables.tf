@@ -57,6 +57,11 @@ variable "instance_connect_cidrs" {
 
 // for environment variables in the api application
 
+variable "PORT" {
+  default = 8080
+  type = number
+}
+
 variable "DB_NAME" {
     default = "ironfish_bridge"
     type = string

@@ -18,8 +18,8 @@ resource "aws_security_group" "ironfish_api_securitygroup" {
   }
 
   ingress {
-    from_port   = 8080
-    to_port     = 8080
+    from_port   = var.PORT
+    to_port     = var.PORT
     protocol    = "tcp"
     security_groups = [var.ingress_security_group.id]
   }

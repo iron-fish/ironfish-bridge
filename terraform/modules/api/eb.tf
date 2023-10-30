@@ -54,7 +54,7 @@ resource "aws_elastic_beanstalk_environment" "api" {
   setting {
     namespace = "aws:elasticbeanstalk:application:environment"
     name      = "PORT"
-    value     = 8080
+    value     = var.PORT
   }
 
   setting {
