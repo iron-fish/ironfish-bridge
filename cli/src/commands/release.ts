@@ -10,6 +10,7 @@ import {
 } from '@ironfish/sdk'
 import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
 import { Flags } from '@oclif/core'
+import { BridgeApi } from '../bridgeApi'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 import { WebApi } from '../webApi'
@@ -61,7 +62,7 @@ export default class Release extends IronfishCommand {
       this.exit(1)
     }
 
-    const api = new WebApi({ host: flags.endpoint, token: flags.token })
+    const api = new BridgeApi({ host: flags.endpoint, token: flags.token })
 
     const client = this.sdk.client
 
@@ -83,7 +84,7 @@ export default class Release extends IronfishCommand {
 
   async startSyncing(
     client: RpcSocketClient,
-    api: WebApi,
+    api: BridgeApi,
     account?: string,
   ): Promise<void> {
     const connected = await client.tryConnect()
@@ -125,10 +126,10 @@ export default class Release extends IronfishCommand {
   async processNextReleaseTransaction(
     client: RpcSocketClient,
     account: string,
-    api: WebApi,
+    api: BridgeApi,
   ): Promise<void> {
     const { requests: unprocessedReleaseRequests } =
-      await api.getBridgeNextReleaseRequests(MAX_RECIPIENTS_PER_TRANSACTION)
+      await api.getNextReleaseRequests(MAX_RECIPIENTS_PER_TRANSACTION)
 
     if (unprocessedReleaseRequests.length === 0) {
       this.log('No release requests')
@@ -203,15 +204,15 @@ export default class Release extends IronfishCommand {
       })
     }
 
-    await api.updateBridgeRequests(updatePayload)
+    await api.updateRequests(updatePayload)
   }
 
   async processNextBurnTransaction(
     client: RpcSocketClient,
     account: string,
-    api: WebApi,
+    api: BridgeApi,
   ): Promise<void> {
-    const { requests: nextBurnRequests } = await api.getBridgeNextBurnRequests(
+    const { requests: nextBurnRequests } = await api.getNextBurnRequests(
       MAX_RECIPIENTS_PER_TRANSACTION,
     )
 
@@ -292,17 +293,15 @@ export default class Release extends IronfishCommand {
       })
     }
 
-    await api.updateBridgeRequests(updatePayload)
+    await api.updateRequests(updatePayload)
   }
 
   async processNextMintTransaction(
     client: RpcSocketClient,
     account: string,
-    api: WebApi,
+    api: BridgeApi,
   ): Promise<void> {
-    const { requests: nextMintRequests } = await api.getBridgeNextMintRequests(
-      1,
-    )
+    const { requests: nextMintRequests } = await api.getNextMintRequests(1)
     if (nextMintRequests.length === 0) {
       this.log('No mint requests')
       return
@@ -348,7 +347,7 @@ export default class Release extends IronfishCommand {
         transaction: ${mintTransactionResponse.content.hash}`,
     )
 
-    await api.updateBridgeRequests([
+    await api.updateRequests([
       {
         id: mintRequest.id,
         status: 'PENDING_DESTINATION_MINT_TRANSACTION_CONFIRMATION',

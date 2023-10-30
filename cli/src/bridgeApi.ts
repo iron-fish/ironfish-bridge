@@ -21,7 +21,7 @@ type BridgeRequest = {
  *  The API should be compatible with the Ironfish Bridge API
  *  https://github.com/iron-fish/ironfish-bridge
  */
-export class WebApi {
+export class BridgeApi {
   host: string
   token: string
 
@@ -36,7 +36,7 @@ export class WebApi {
     this.token = options.token || ''
   }
 
-  async getBridgeHead(): Promise<string | undefined> {
+  async getHead(): Promise<string | undefined> {
     this.requireToken()
 
     const response = await axios
@@ -53,7 +53,7 @@ export class WebApi {
     return response?.data.hash
   }
 
-  async setBridgeHead(head: string): Promise<void> {
+  async setHead(head: string): Promise<void> {
     this.requireToken()
 
     const options = this.options({ 'Content-Type': 'application/json' })
@@ -61,7 +61,7 @@ export class WebApi {
     await axios.post(`${this.host}/bridge/head`, { head }, options)
   }
 
-  async sendBridgeDeposits(
+  async send(
     sends: {
       amount: string
       asset: string
@@ -103,7 +103,7 @@ export class WebApi {
     )
   }
 
-  async getBridgeNextReleaseRequests(
+  async getNextReleaseRequests(
     count?: number,
   ): Promise<{ requests: Array<BridgeRequest> }> {
     this.requireToken()
@@ -120,7 +120,7 @@ export class WebApi {
     return response.data
   }
 
-  async getBridgeNextMintRequests(
+  async getNextMintRequests(
     count?: number,
   ): Promise<{ requests: Array<BridgeRequest> }> {
     this.requireToken()
@@ -138,7 +138,7 @@ export class WebApi {
     return response.data
   }
 
-  async getBridgeNextBurnRequests(
+  async getNextBurnRequests(
     count?: number,
   ): Promise<{ requests: Array<BridgeRequest> }> {
     this.requireToken()
@@ -156,7 +156,7 @@ export class WebApi {
     return response.data
   }
 
-  async getBridgePendingBurnRequests(
+  async getPendingBurnRequests(
     count?: number,
   ): Promise<{ requests: Array<BridgeRequest> }> {
     this.requireToken()
@@ -175,7 +175,7 @@ export class WebApi {
     return response.data
   }
 
-  async updateBridgeRequests(
+  async updateRequests(
     payload: Array<{
       id: number
       status: string
