@@ -1,10 +1,9 @@
 data "aws_availability_zones" "available" {
 }
 
-# Create var.az_count private subnets, each in a different AZ
 resource "aws_subnet" "ironfish_private" {
-  count             = 1
-  cidr_block        = cidrsubnet(aws_vpc.ironfish.cidr_block, 4, count.index)
+  count             = 2
+  cidr_block        = cidrsubnet(aws_vpc.ironfish.cidr_block, 4, 2+count.index)
   availability_zone = data.aws_availability_zones.available.names[count.index]
   vpc_id            = aws_vpc.ironfish.id
   tags = {

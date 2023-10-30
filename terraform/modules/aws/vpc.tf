@@ -5,7 +5,7 @@ resource "aws_vpc" "ironfish" {
   enable_dns_support   = true
 
   tags = {
-    Name = "ironfish-vps"
+    Name = "ironfish-bridge-vps"
   }
 }
 
