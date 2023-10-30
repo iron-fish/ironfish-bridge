@@ -13,7 +13,6 @@ import { Flags } from '@oclif/core'
 import { BridgeApi } from '../bridgeApi'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
-import { WebApi } from '../webApi'
 
 const MAX_RECIPIENTS_PER_TRANSACTION = 10
 
