@@ -97,7 +97,7 @@ export default class BridgeRelay extends IronfishCommand {
     head?: string,
   ): Promise<void> {
     this.log('Connecting to node...')
-    const client = await this.sdk.connectRpc()
+    const client = await this.sdk.connectRpc(false, true)
 
     this.log('Watching with incoming view key:', incomingViewKey)
     this.log('Watching with outgoing view key:', outgoingViewKey)
