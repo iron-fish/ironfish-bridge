@@ -1,15 +1,15 @@
-resource "aws_elastic_beanstalk_application" "ironfish_nodes" {
-  name = "${var.environment_name}-node"
+resource "aws_elastic_beanstalk_application" "api" {
+  name = var.environment_name
 }
 
-resource "aws_elastic_beanstalk_environment" "ironfish_node" {
-  application         = aws_elastic_beanstalk_application.ironfish_nodes.name
-  name                = var.environment_name
+resource "aws_elastic_beanstalk_environment" "api" {
+  name                = aws_elastic_beanstalk_application.api.name
   cname_prefix        = var.environment_name
-  solution_stack_name = "64bit Amazon Linux 2 v3.6.3 running Docker"
+  application         = aws_elastic_beanstalk_application.api.name
+  version_label       = aws_elastic_beanstalk_application_version.ironfish_version.name
+  solution_stack_name = "64bit Amazon Linux 2 v5.8.7 running Node.js 18"
 
   tier                   = "WebServer"
-  version_label          = aws_elastic_beanstalk_application_version.ironfish_node_version.name
   wait_for_ready_timeout = "20m"
 
   setting {
@@ -19,17 +19,11 @@ resource "aws_elastic_beanstalk_environment" "ironfish_node" {
   }
 
   setting {
-    namespace = "aws:elasticbeanstalk:environment"
-    name      = "ServiceRole"
-    value     = aws_iam_role.service.name
-  }
-
-  setting {
     namespace = "aws:ec2:instances"
     name      = "InstanceTypes"
     value     = var.instance_type
   }
-
+  
   setting {
     namespace = "aws:ec2:vpc"
     name      = "VPCId"
@@ -51,6 +45,13 @@ resource "aws_elastic_beanstalk_environment" "ironfish_node" {
   setting {
     namespace = "aws:autoscaling:launchconfiguration"
     name      = "SecurityGroups"
-    value     = aws_security_group.ironfish_node_securitygroup.id
+    value     = aws_security_group.ironfish_securitygroup.id
   }
+
 }
+
+# AWS S3 bucket to store the application versions
+resource "aws_s3_bucket" "eb_bucket" {
+  bucket = "eb-${var.environment_name}-bucket"
+}
+

@@ -97,10 +97,23 @@ variable "rpc_host" {
   default     = "0.0.0.0"
 }
 
+variable "rpc_auth_token" {
+  description = "RPC Auth Token to connect to rpc"
+  type        = string
+  default     = ""
+}
+
 variable "instance_type" {
   description = "EC2 instance type to run the node on"
   type        = string
   default     = "t3.small"
+}
+
+variable "aws_efs" {
+  description = "The AWS EFS to store files on"
+  type = object({
+    id = string
+  })
 }
 
 

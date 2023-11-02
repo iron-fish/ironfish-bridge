@@ -11,12 +11,21 @@ data "archive_file" "deployment_bundle" {
       node_name               = var.node_name
       rpc_host                = var.rpc_host
       rpc_port                = var.rpc_port
+      rpc_auth_token          = var.rpc_auth_token
       override_bootstrap_node = var.bootstrap_node.override
       bootstrap_node          = var.bootstrap_node.value
       network_id              = var.network_id
       datadir                 = var.environment_name
     })
     filename = "docker-compose.yml"
+  }
+
+  source {
+    content = templatefile("${path.module}/deployment/.ebextensions/01-storage-efs-mountfilesystem.config.tpl", {
+      file_system_id  = var.aws_efs.id
+      mount_directory = "/efs"
+    })
+    filename = ".ebextensions/01-storage-efs-mountfilesystem.config"
   }
 }
 

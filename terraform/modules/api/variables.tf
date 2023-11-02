@@ -30,11 +30,11 @@ variable "aws_vpc" {
   })
 }
 
-variable "ingress_security_group" {
+variable "ingress_security_groups" {
     description = "Security group to allow ingress from"
-    type = object({
+    type = list(object({
         id = string
-    })
+    }))
 }
 
 variable "instance_type" {
@@ -56,7 +56,6 @@ variable "instance_connect_cidrs" {
 
 
 // for environment variables in the api application
-
 variable "DB_NAME" {
     default = "ironfish_bridge"
     type = string
