@@ -115,6 +115,7 @@ export default class BridgeRelay extends IronfishCommand {
       incomingViewKey,
       outgoingViewKey,
       head,
+      memoAsHex: true,
     })
 
     const speed = new Meter()
@@ -216,7 +217,7 @@ export default class BridgeRelay extends IronfishCommand {
             status: 'CONFIRMED',
           })
         } else {
-          const ethAddress = this.decodeEthAddress(note.memoHex)
+          const ethAddress = this.decodeEthAddress(note.memo)
 
           if (!isAddress(ethAddress)) {
             this.log(
