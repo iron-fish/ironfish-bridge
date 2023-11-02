@@ -2,7 +2,7 @@
 
 ## tl;dr
 
-Login to aws on your machine. From this folder run `terraform init && terraform apply`. Note that you may need to run the command twice for all resources to be successfully created.
+Login to aws on your machine. From this folder run `terraform init && terraform apply`. Note that you may need to run the command twice for all resources to be successfully created. Also wait a few minutes after applying for services to connect properly, as DNS entries have to be created/propogated for the underlying services.
 
 ## Outline
 
