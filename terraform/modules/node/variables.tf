@@ -20,12 +20,6 @@ variable "aws_vpc" {
   })
 }
 
-variable "dns_subdomain" {
-  description = "Subdomain of ironfish.network on which to host the node"
-  type        = string
-  default     = ""
-}
-
 variable "bootstrap_node" {
   description = "Address of the network's bootstrap node. If empty, the node is started without a bootstrap node"
   type = object({

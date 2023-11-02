@@ -66,11 +66,6 @@ data "aws_iam_policy_document" "ec2" {
   }
 }
 
-resource "aws_iam_role_policy_attachment" "elastic_beanstalk_multi_container_docker" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AWSElasticBeanstalkMulticontainerDocker"
-}
-
 resource "aws_iam_role" "ec2" {
   name               = "eb-${var.environment_name}-ec2"
   assume_role_policy = data.aws_iam_policy_document.ec2.json
@@ -108,13 +103,6 @@ resource "aws_iam_role_policy_attachment" "ssm_automation" {
   lifecycle {
     create_before_destroy = true
   }
-}
-
-# http://docs.aws.amazon.com/elasticbeanstalk/latest/dg/create_deploy_docker.container.console.html
-# http://docs.aws.amazon.com/AmazonECR/latest/userguide/ecr_managed_policies.html#AmazonEC2ContainerRegistryReadOnly
-resource "aws_iam_role_policy_attachment" "ecr_readonly" {
-  role       = aws_iam_role.ec2.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
 }
 
 resource "aws_ssm_activation" "ec2" {

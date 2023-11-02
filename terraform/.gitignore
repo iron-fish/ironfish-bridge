@@ -3,3 +3,5 @@
 *.tfstate.backup
 *.tfvars
 *.terraform*
+*deployment_bundle*
+*.DS_STORE
