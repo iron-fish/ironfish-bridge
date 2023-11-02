@@ -202,7 +202,9 @@ export default class BridgeRelay extends IronfishCommand {
         }
 
         if (note.sender === bridgeAddress) {
-          const requestId = Number(note.memo)
+          const requestId = Number(
+            Buffer.from(note.memo, 'hex').toString('utf8'),
+          )
 
           if (isNaN(requestId)) {
             continue
