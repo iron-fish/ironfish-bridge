@@ -1,21 +1,28 @@
 /* This Source Code Form is subject to the terms of the Mozilla Public
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
-import { Asset } from '@ironfish/rust-nodejs'
+import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
 import {
   Assert,
   GetTransactionStreamResponse,
   Meter,
+  PromiseUtils,
+  RawTransactionSerde,
+  RpcClient,
   TimeUtils,
 } from '@ironfish/sdk'
+import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
 import { Flags } from '@oclif/core'
 import { isAddress } from 'web3-validator'
 import { BridgeApi } from '../bridgeApi'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
+const MAX_OUTPUTS_PER_TRANSACTION = 10
+const SEND_TRANSACTIONS_INTERVAL_MS = 1000 * 60 * 2
+
 export default class BridgeRelay extends IronfishCommand {
-  static description = `Relay Iron Fish deposits to the Sepolia bridge contract`
+  static description = `Relay Iron Fish transactions to the Iron Fish <=> Sepolia bridge API`
 
   static flags = {
     ...RemoteFlags,
@@ -61,6 +68,12 @@ export default class BridgeRelay extends IronfishCommand {
       description: 'The block hash to start following at',
       required: false,
     }),
+    account: Flags.string({
+      char: 'b',
+      parse: (input: string): Promise<string> => Promise.resolve(input.trim()),
+      required: false,
+      description: 'Name of the account to send transactions from',
+    }),
   }
 
   async start(): Promise<void> {
@@ -78,7 +91,11 @@ export default class BridgeRelay extends IronfishCommand {
     const confirmations =
       flags.confirmations ?? this.sdk.config.get('confirmations')
 
-    await this.syncBlocks(
+    this.log('Connecting to node...')
+    const client = await this.sdk.connectRpc(false, true)
+
+    void this.syncBlocks(
+      client,
       api,
       flags.incomingViewKey,
       flags.outgoingViewKey,
@@ -86,9 +103,12 @@ export default class BridgeRelay extends IronfishCommand {
       confirmations,
       flags.fromHead,
     )
+
+    await this.sendTransactions(client, api, flags.account)
   }
 
   async syncBlocks(
+    client: RpcClient,
     api: BridgeApi,
     incomingViewKey: string,
     outgoingViewKey: string,
@@ -96,12 +116,6 @@ export default class BridgeRelay extends IronfishCommand {
     confirmations: number,
     head?: string,
   ): Promise<void> {
-    this.log('Connecting to node...')
-    const client = await this.sdk.connectRpc(false, true)
-
-    this.log('Watching with incoming view key:', incomingViewKey)
-    this.log('Watching with outgoing view key:', outgoingViewKey)
-
     head = head ?? (await api.getHead())
 
     if (!head) {
@@ -211,7 +225,7 @@ export default class BridgeRelay extends IronfishCommand {
           }
 
           this.log(
-            `Confirmed release of bridge request ${note.memo} in transaction ${transaction.hash}`,
+            `Confirmed release of bridge request ${requestId} in transaction ${transaction.hash}`,
           )
           confirms.push({
             id: requestId,
@@ -274,5 +288,294 @@ export default class BridgeRelay extends IronfishCommand {
       Buffer.from(memoHex, 'hex').toString('utf8'),
       'base64',
     ).toString('hex')
+  }
+
+  async sendTransactions(
+    client: RpcClient,
+    api: BridgeApi,
+    account?: string,
+  ): Promise<void> {
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      if (!account) {
+        this.log('Fetching bridge account')
+
+        const response = await client.wallet.getDefaultAccount()
+
+        if (!response.content.account) {
+          this.error('Bridge node has no account to use')
+        }
+
+        account = response.content.account.name
+      }
+
+      this.log(`Using account ${account}`)
+
+      // TODO(hughy): balance transaction queueing
+      await this.processNextReleaseTransaction(client, account, api)
+      await this.processNextBurnTransaction(client, account, api)
+      await this.processNextMintTransaction(client, account, api)
+
+      await PromiseUtils.sleep(SEND_TRANSACTIONS_INTERVAL_MS)
+    }
+  }
+
+  async processNextReleaseTransaction(
+    client: RpcClient,
+    account: string,
+    api: BridgeApi,
+  ): Promise<void> {
+    const { requests: unprocessedReleaseRequests } =
+      await api.getNextReleaseRequests(MAX_OUTPUTS_PER_TRANSACTION)
+
+    if (unprocessedReleaseRequests.length === 0) {
+      this.log('No release requests')
+      return
+    }
+
+    const requestsToProcess = []
+    let totalAmount = 0n
+
+    const response = await client.wallet.getAccountBalance({ account })
+    const availableBalance = BigInt(response.content.available)
+
+    for (const request of unprocessedReleaseRequests) {
+      if (!isValidPublicAddress(request.destination_address)) {
+        // TODO (hughy): submit failed status back to bridge API
+        continue
+      }
+
+      totalAmount += BigInt(request.amount) + 1n
+      if (totalAmount > availableBalance) {
+        this.log(
+          `Bridge account only has available balance for ${requestsToProcess.length} transactions`,
+        )
+        break
+      }
+
+      requestsToProcess.push(request)
+    }
+
+    if (requestsToProcess.length === 0) {
+      this.log('Available balance too low to process release requests')
+      return
+    }
+
+    this.log(
+      `Sending: ${JSON.stringify(
+        requestsToProcess,
+        ['id', 'destination_address', 'amount'],
+        '   ',
+      )}`,
+    )
+
+    const outputs = requestsToProcess.map((req) => {
+      return {
+        publicAddress: req.destination_address,
+        amount: req.amount,
+        memo: req.id.toString(),
+        assetId: Asset.nativeId().toString('hex'),
+      }
+    })
+
+    const tx = await client.wallet.sendTransaction({
+      account,
+      outputs,
+      fee: BigInt(requestsToProcess.length).toString(),
+    })
+
+    this.log(
+      `Release: ${JSON.stringify(
+        requestsToProcess,
+        ['id', 'destination_address', 'amount'],
+        '   ',
+      )} ${tx.content.hash}`,
+    )
+
+    const updatePayload = []
+    for (const request of requestsToProcess) {
+      updatePayload.push({
+        id: request.id,
+        destination_transaction: tx.content.hash,
+        status: 'PENDING_DESTINATION_RELEASE_TRANSACTION_CONFIRMATION',
+      })
+    }
+
+    await api.updateRequests(updatePayload)
+  }
+
+  async processNextBurnTransaction(
+    client: RpcClient,
+    account: string,
+    api: BridgeApi,
+  ): Promise<void> {
+    const { requests: nextBurnRequests } = await api.getNextBurnRequests(
+      MAX_OUTPUTS_PER_TRANSACTION,
+    )
+
+    if (nextBurnRequests.length === 0) {
+      this.log('No burn requests')
+      return
+    }
+
+    const pendingRequests = []
+
+    const balancesResponse = await client.wallet.getAccountBalances({ account })
+    const availableBalances: Map<string, bigint> = new Map()
+    for (const balance of balancesResponse.content.balances) {
+      availableBalances.set(balance.assetId, BigInt(balance.available))
+    }
+
+    const burnDescriptions: Map<string, BurnDescription> = new Map()
+
+    for (const request of nextBurnRequests) {
+      const assetId = request.asset
+
+      const availableBalance = availableBalances.get(assetId) ?? 0n
+
+      const burnDescription = burnDescriptions.get(assetId) ?? {
+        assetId: Buffer.from(assetId, 'hex'),
+        value: 0n,
+      }
+
+      if (burnDescription.value + BigInt(request.amount) > availableBalance) {
+        continue
+      }
+
+      burnDescription.value += BigInt(request.amount)
+      burnDescriptions.set(assetId, burnDescription)
+      pendingRequests.push(request)
+    }
+
+    if (burnDescriptions.size === 0) {
+      this.log('Available balances too low to burn bridged assets')
+      return
+    }
+
+    const burns = []
+    for (const burn of burnDescriptions.values()) {
+      burns.push({
+        assetId: burn.assetId.toString('hex'),
+        value: burn.value.toString(),
+      })
+    }
+
+    const createTransactionResponse = await client.wallet.createTransaction({
+      account,
+      outputs: [],
+      burns,
+      fee: '1',
+    })
+
+    const tx = await client.wallet.postTransaction({
+      account,
+      transaction: createTransactionResponse.content.transaction,
+      broadcast: true,
+    })
+
+    this.log(
+      `Burn: ${JSON.stringify(
+        pendingRequests,
+        ['id', 'asset', 'amount'],
+        '   ',
+      )} ${tx.content.hash}`,
+    )
+
+    const updatePayload = []
+    for (const request of pendingRequests) {
+      updatePayload.push({
+        id: request.id,
+        source_burn_transaction: tx.content.hash,
+        status: 'PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION',
+      })
+    }
+
+    await api.updateRequests(updatePayload)
+  }
+
+  async processNextMintTransaction(
+    client: RpcClient,
+    account: string,
+    api: BridgeApi,
+  ): Promise<void> {
+    const { requests: nextMintRequests } = await api.getNextMintRequests(1)
+    if (nextMintRequests.length === 0) {
+      this.log('No mint requests')
+      return
+    }
+
+    const mintRequest = nextMintRequests[0]
+
+    const createTransactionResponse = await client.wallet.createTransaction({
+      account,
+      outputs: [
+        {
+          amount: mintRequest.amount,
+          assetId: mintRequest.asset,
+          publicAddress: mintRequest.destination_address,
+          memo: mintRequest.id.toString(),
+        },
+      ],
+      mints: [
+        {
+          value: mintRequest.amount,
+          assetId: mintRequest.asset,
+        },
+      ],
+      fee: '1',
+    })
+
+    const bytes = Buffer.from(
+      createTransactionResponse.content.transaction,
+      'hex',
+    )
+    const raw = RawTransactionSerde.deserialize(bytes)
+    const mintTransactionResponse = await client.wallet.postTransaction({
+      account,
+      transaction: RawTransactionSerde.serialize(raw).toString('hex'),
+      broadcast: true,
+    })
+
+    this.log(
+      `Mint:
+        id: ${mintRequest.id}
+        asset: ${mintRequest.asset}
+        amount: ${mintRequest.amount}
+        transaction: ${mintTransactionResponse.content.hash}`,
+    )
+
+    await api.updateRequests([
+      {
+        id: mintRequest.id,
+        status: 'PENDING_DESTINATION_MINT_TRANSACTION_CONFIRMATION',
+        destination_transaction: mintTransactionResponse.content.hash,
+      },
+    ])
+  }
+
+  async walletIsReady(client: RpcClient, account: string): Promise<boolean> {
+    const status = await client.node.getStatus()
+
+    if (!status.content.blockchain.synced) {
+      this.log('Blockchain not synced')
+      return false
+    }
+
+    if (!status.content.peerNetwork.isReady) {
+      this.log('Peer network not ready')
+      return false
+    }
+
+    const balance = await client.wallet.getAccountBalance({
+      account,
+      assetId: Asset.nativeId().toString('hex'),
+    })
+
+    if (BigInt(balance.content.available) <= 0n) {
+      this.log('No balance available for transaction fees')
+      return false
+    }
+
+    return true
   }
 }
