@@ -24,14 +24,6 @@ resource "aws_elastic_beanstalk_environment" "ironfish_node" {
     value     = aws_iam_role.service.name
   }
 
-  # The docs below claim this isn't used, but we'll turn it off anyway
-  # https://docs.amazonaws.cn/en_us/elasticbeanstalk/latest/dg/command-options-specific.html
-  setting {
-    namespace = "aws:elasticbeanstalk:environment:proxy"
-    name      = "ProxyServer"
-    value     = "none"
-  }
-
   setting {
     namespace = "aws:ec2:instances"
     name      = "InstanceTypes"
