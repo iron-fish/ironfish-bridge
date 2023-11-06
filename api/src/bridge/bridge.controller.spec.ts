@@ -156,11 +156,21 @@ describe('BridgeController', () => {
 
   describe('POST /bridge/release', () => {
     it('marks the release for confirmation', async () => {
-      const dto = bridgeRequestDTO({});
+      const dto1 = bridgeRequestDTO({});
+      const dto2 = bridgeRequestDTO({});
 
-      const bridgeRequest = await bridgeService.upsertRequests([
+      const source_burn_transaction = 'deadbeef';
+
+      const bridgeRequests = await bridgeService.upsertRequests([
         {
-          ...dto,
+          ...dto1,
+          source_burn_transaction,
+          status:
+            BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
+        },
+        {
+          ...dto2,
+          source_burn_transaction,
           status:
             BridgeRequestStatus.PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION,
         },
@@ -174,22 +184,26 @@ describe('BridgeController', () => {
         .post('/bridge/release')
         .set('Authorization', `Bearer ${API_KEY}`)
         .send({
-          releases: [{ id: bridgeRequest[0].id }],
+          releases: [{ source_burn_transaction }],
         })
         .expect(HttpStatus.CREATED);
 
       expect(addJobMock).toHaveBeenCalledTimes(1);
 
       const updatedRequest = await bridgeService.findByIds([
-        bridgeRequest[0].id,
+        bridgeRequests[0].id,
       ]);
-      assert.ok(bridgeRequest);
+      assert.ok(bridgeRequests);
       expect(updatedRequest[0].status).toBe(
         BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
       );
 
       expect(response.body).toMatchObject({
-        [bridgeRequest[0].id]: {
+        [bridgeRequests[0].id]: {
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+        },
+        [bridgeRequests[1].id]: {
           status:
             BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
         },

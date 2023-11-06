@@ -119,35 +119,31 @@ export class BridgeController {
     )
     { releases }: { releases: ReleaseRequestDTO[] },
   ): Promise<UpdateResponseDTO> {
-    const requests = await this.bridgeService.findByIds(
-      releases.map((r) => r.id),
-    );
     const response: UpdateResponseDTO = {};
     for (const release of releases) {
-      const request = requests.find((r) => r.id === release.id) ?? null;
-
-      if (!request) {
-        response[release.id] = { status: null };
-        continue;
-      }
-
-      await this.bridgeService.updateRequest({
-        id: release.id,
-        status:
-          BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
-      });
-
-      response[release.id] = {
-        status:
-          BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
-      };
-
-      await this.graphileWorkerService.addJob(
-        GraphileWorkerPattern.RELEASE_TEST_USDC,
-        {
-          bridgeRequestId: request.id,
-        },
+      const requests = await this.bridgeService.findBySourceBurnTransaction(
+        release.source_burn_transaction,
       );
+
+      for (const request of requests) {
+        await this.bridgeService.updateRequest({
+          id: request.id,
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+        });
+
+        response[request.id] = {
+          status:
+            BridgeRequestStatus.PENDING_DESTINATION_RELEASE_TRANSACTION_CREATION,
+        };
+
+        await this.graphileWorkerService.addJob(
+          GraphileWorkerPattern.RELEASE_TEST_USDC,
+          {
+            bridgeRequestId: request.id,
+          },
+        );
+      }
     }
 
     return response;

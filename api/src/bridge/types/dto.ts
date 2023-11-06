@@ -69,5 +69,5 @@ export type UpdateResponseDTO = {
 };
 
 export type ReleaseRequestDTO = {
-  id: AddressFk;
+  source_burn_transaction: string;
 };
