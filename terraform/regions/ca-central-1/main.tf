@@ -53,20 +53,6 @@ module "relay" {
   command                           = "npm i && npm i @ironfish/rust-nodejs-linux-x64-gnu && npm start -- relay --endpoint=http://${var.api_name}.${var.az}.elasticbeanstalk.com --token=${var.api_token} --incomingViewKey=${var.incoming_view_key} --outgoingViewKey=${var.outgoing_view_key} --address=${var.bridge_address} --rpc.tcp --rpc.auth=${var.rpc_auth_token} --rpc.tcp.host=${var.node_name}.${var.az}.elasticbeanstalk.com"
 }
 
-module "release" {
-  source                            = "../../modules/cli"
-  aws_route53_zone                  = module.aws.route53_zone_ironfish
-  aws_subnet_private                = module.aws.subnet_ironfish_private
-  aws_vpc                           = module.aws.vpc_ironfish
-  environment_name                  = var.release_name
-  instance_type                     = var.release_instance_type
-  instance_connect_cidrs            = [var.ec2_instance_connect_cidr]
-  // hardcoding endpoint instead of ${module.api.endpoint_url} because of circular dependency
-  // forcing install of linux nodejs binary, not installing automatically
-  command                           = "npm i && npm i @ironfish/rust-nodejs-linux-x64-gnu && npm start -- release --endpoint=http://${var.api_name}.${var.az}.elasticbeanstalk.com --token=${var.api_token} --rpc.tcp --rpc.auth=${var.rpc_auth_token} --rpc.tcp.host=${var.node_name}.${var.az}.elasticbeanstalk.com"
-}
-
-
 module "api" {
   source                            = "../../modules/api"
 
@@ -76,7 +62,7 @@ module "api" {
   aws_route53_zone                  = module.aws.route53_zone_ironfish
   aws_subnet_private                = module.aws.subnet_ironfish_private
   aws_vpc                           = module.aws.vpc_ironfish
-  ingress_security_groups           = [module.relay.security_group, module.release.security_group]
+  ingress_security_groups           = [module.relay.security_group]
   instance_type                     = var.api_instance_type
 
   # API ENV Variables
