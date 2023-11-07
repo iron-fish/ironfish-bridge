@@ -12,6 +12,7 @@ services:
       %{if command == "start" && network_id != -1}--networkId ${network_id}%{endif}
       %{if command == "start" && node_name != ""}-n ${node_name}%{endif}
       %{if command == "start"}%{if listen_port != 0}-p ${listen_port}%{else}--no-listen%{endif}%{endif}
+      %{if rpc_auth_token != ""}--rpc.auth=${rpc_auth_token}%{endif}
       %{if rpc_port != 0}--rpc.tcp %{if rpc_host != ""}--rpc.tcp.host=${rpc_host}%{endif} --rpc.tcp.port=${rpc_port}%{endif}
     ports:
       %{if listen_port != 0}- "${listen_port}:${listen_port}"%{endif}

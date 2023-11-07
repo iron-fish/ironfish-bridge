@@ -29,14 +29,15 @@ module "node" {
   aws_route53_zone                  = module.aws.route53_zone_ironfish
   aws_subnet_private                = module.aws.subnet_ironfish_private
   aws_vpc                           = module.aws.vpc_ironfish
+  bootstrap_node                    = var.bootstrap_node
+  network_id                        = var.network_id
   environment_name                  = var.node_name
   node_name                         = var.node_name
   instance_type                     = var.node_instance_type
   rpc_allowed_cidr_blocks           = var.rpc_allowed_cidr_blocks
   rpc_auth_token                    = var.rpc_auth_token
-  network_id                        = 1
   instance_connect_cidrs            = [var.ec2_instance_connect_cidr]
-
+  command                           = var.node_command
 }
 
 
