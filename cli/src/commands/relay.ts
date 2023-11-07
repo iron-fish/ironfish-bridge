@@ -20,6 +20,9 @@ import { RemoteFlags } from '../flags'
 
 const MAX_OUTPUTS_PER_TRANSACTION = 10
 const SEND_TRANSACTIONS_INTERVAL_MS = 1000 * 60 * 2
+const OWNED_ASSET_IDS = new Set([
+  '3723c40e1c8a07f269facfae53453545600a02a1431cd1e03935d1e0256a003a',
+])
 
 export default class BridgeRelay extends IronfishCommand {
   static description = `Relay Iron Fish transactions to the Iron Fish <=> Sepolia bridge API`
@@ -171,19 +174,6 @@ export default class BridgeRelay extends IronfishCommand {
   ): Promise<void> {
     Assert.isNotUndefined(response)
 
-    const { requests: pendingBurnRequests } = await api.getPendingBurnRequests()
-
-    const pendingBurnTransactions: Map<string, number[]> = new Map()
-    for (const request of pendingBurnRequests) {
-      Assert.isNotUndefined(request.source_burn_transaction)
-
-      const requestIds =
-        pendingBurnTransactions.get(request.source_burn_transaction) ?? []
-
-      requestIds.push(request.id)
-      pendingBurnTransactions.set(request.source_burn_transaction, requestIds)
-    }
-
     const sends = []
     const burns = []
     const releases = []
@@ -192,22 +182,16 @@ export default class BridgeRelay extends IronfishCommand {
     const transactions = response.transactions
 
     for (const transaction of transactions) {
-      if (pendingBurnTransactions.has(transaction.hash)) {
-        const requestIds = pendingBurnTransactions.get(transaction.hash) ?? []
-
-        this.log(
-          `Confirmed burn for request IDs [${requestIds.toString()}] in transaction ${
-            transaction.hash
-          }`,
-        )
-
-        for (const requestId of requestIds) {
+      for (const burn of transaction.burns) {
+        if (OWNED_ASSET_IDS.has(burn.assetId)) {
+          this.log(
+            `Confirmed burn of asset ${burn.assetId} in transaction ${transaction.hash}`,
+          )
           releases.push({
-            id: requestId,
+            source_burn_transaction: transaction.hash,
           })
+          continue
         }
-
-        continue
       }
 
       for (const note of transaction.notes) {

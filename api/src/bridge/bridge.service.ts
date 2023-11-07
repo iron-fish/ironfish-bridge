@@ -63,6 +63,16 @@ export class BridgeService {
     });
   }
 
+  async findBySourceBurnTransaction(
+    sourceBurnTransaction: string,
+  ): Promise<BridgeRequest[]> {
+    return this.prisma.bridgeRequest.findMany({
+      where: {
+        source_burn_transaction: sourceBurnTransaction,
+      },
+    });
+  }
+
   async upsertRequests(
     requests: BridgeDataDTO[],
     client?: BasePrismaClient,

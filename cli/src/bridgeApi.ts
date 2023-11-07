@@ -93,7 +93,9 @@ export class BridgeApi {
     await axios.post(`${this.host}/bridge/burn`, { burns }, this.options())
   }
 
-  async bridgeRelease(releases: { id: number }[]): Promise<void> {
+  async bridgeRelease(
+    releases: { source_burn_transaction: string }[],
+  ): Promise<void> {
     this.requireToken()
 
     await axios.post(
@@ -153,25 +155,6 @@ export class BridgeApi {
       },
       this.options(),
     )
-    return response.data
-  }
-
-  async getPendingBurnRequests(
-    count?: number,
-  ): Promise<{ requests: Array<BridgeRequest> }> {
-    this.requireToken()
-
-    const response = await axios.post<{ requests: Array<BridgeRequest> }>(
-      `${this.host}/bridge/retrieve`,
-      {
-        source_chain: 'IRONFISH',
-        destination_chain: 'ETHEREUM',
-        status: 'PENDING_SOURCE_BURN_TRANSACTION_CONFIRMATION',
-        count,
-      },
-      this.options(),
-    )
-
     return response.data
   }
 
