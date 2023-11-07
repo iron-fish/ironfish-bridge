@@ -39,16 +39,10 @@ export class BridgeApi {
   async getHead(): Promise<string | undefined> {
     this.requireToken()
 
-    const response = await axios
-      .get<{ hash: string }>(`${this.host}/bridge/head`, this.options())
-      .catch((e) => {
-        // The API returns 404 for no head
-        if (IsAxiosError(e) && e.response?.status === 404) {
-          return null
-        }
-
-        throw e
-      })
+    const response = await axios.get<{ hash: string }>(
+      `${this.host}/bridge/head`,
+      this.options(),
+    )
 
     return response?.data.hash
   }
