@@ -16,10 +16,6 @@ variable "relay_instance_type" {
   default = "t3.small"
 }
 
-variable "release_instance_type" {
-  default = "t3.small"
-}
-
 variable "node_instance_type" {
   default = "t3.small"
 }
@@ -59,16 +55,24 @@ variable "node_name" {
   default = "ironfish-bridge-node"
 }
 
-variable "release_name" {
-  default = "ironfish-bridge-release"
-}
-
 variable "relay_name" {
   default = "ironfish-bridge-relay"
 }
 
+variable "node_command" {
+  default = "start"
+}
 
+variable "bootstrap_node" {
+  default = {
+    override = false
+    value = ""
+  }
+}
 
+variable "network_id" {
+  default = 1
+}
 
 # API ENV variables
 
