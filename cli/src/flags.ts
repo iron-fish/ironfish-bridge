@@ -2,12 +2,15 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import {
+  CurrencyUtils,
   DEFAULT_CONFIG_NAME,
   DEFAULT_DATA_DIR,
   DEFAULT_USE_RPC_HTTP,
   DEFAULT_USE_RPC_IPC,
   DEFAULT_USE_RPC_TCP,
   DEFAULT_USE_RPC_TLS,
+  MAXIMUM_ORE_AMOUNT,
+  MINIMUM_ORE_AMOUNT,
 } from '@ironfish/sdk'
 import { Flags, Interfaces } from '@oclif/core'
 
@@ -131,3 +134,35 @@ remoteFlags[RpcAuthFlagKey] = RpcAuthFlag as unknown as CompletableOptionFlag
  * RPC client to connect to a node to run the command
  */
 export const RemoteFlags = remoteFlags
+
+type IronOpts = { minimum?: bigint; flagName: string }
+
+export const IronFlag = Flags.custom<bigint, IronOpts>({
+  parse: async (input, _ctx, opts): Promise<bigint> => {
+    return new Promise((resolve, reject) => {
+      const { minimum, flagName } = opts
+      try {
+        const value = CurrencyUtils.decodeIron(input)
+
+        if (minimum !== undefined && value < minimum) {
+          reject(
+            new Error(
+              `The minimum ${flagName} is ${CurrencyUtils.renderOre(
+                minimum,
+                true,
+              )}`,
+            ),
+          )
+        }
+
+        if (value < MINIMUM_ORE_AMOUNT || value > MAXIMUM_ORE_AMOUNT) {
+          reject(new Error(`The number inputted for ${flagName} is invalid.`))
+        }
+
+        resolve(value)
+      } catch {
+        reject(new Error(`The number inputted for ${flagName} is invalid.`))
+      }
+    })
+  },
+})
