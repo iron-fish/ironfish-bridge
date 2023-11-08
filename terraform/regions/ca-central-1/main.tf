@@ -51,7 +51,7 @@ module "relay" {
   instance_connect_cidrs            = [var.ec2_instance_connect_cidr]
   // hardcoding endpoint instead of ${module.api.endpoint_url} because of circular dependency
   // forcing install of linux nodejs binary, not installing automatically
-  command                           = "npm i && npm i @ironfish/rust-nodejs-linux-x64-gnu && npm start -- relay --endpoint=http://${var.api_name}.${var.az}.elasticbeanstalk.com --token=${var.api_token} --incomingViewKey=${var.incoming_view_key} --outgoingViewKey=${var.outgoing_view_key} --address=${var.bridge_address} --rpc.tcp --rpc.auth=${var.rpc_auth_token} --rpc.tcp.host=${var.node_name}.${var.az}.elasticbeanstalk.com"
+  command                           = "npm i && npm i @ironfish/rust-nodejs-linux-x64-gnu && npm start -- relay --endpoint=http://${var.api_name}.${var.az}.elasticbeanstalk.com --token=${var.IRONFISH_BRIDGE_API_KEY} --incomingViewKey=${var.incoming_view_key} --outgoingViewKey=${var.outgoing_view_key} --address=${var.IRONFISH_BRIDGE_ADDRESS} --rpc.tcp --rpc.auth=${var.rpc_auth_token} --rpc.tcp.host=${var.node_name}.${var.az}.elasticbeanstalk.com"
 }
 
 module "api" {

@@ -23,8 +23,8 @@ export class SepoliaHeadsService {
     if (!record) {
       record = await this.prisma.sepoliaHead.create({
         data: {
-          hash: '0xf1cc4b51c6a75fdf40a14b01eed5f5f6cdc369225557d001e6bca4e4ab308f4f',
-          height: 4376698,
+          hash: '0x9b99b712ea74b180d837db052469f0d96c71097d10d560bbdf29e291d753988f',
+          height: 4655600,
           asset: WIRON_CONTRACT_ADDRESS,
         },
       });
@@ -62,8 +62,8 @@ export class SepoliaHeadsService {
     if (!record) {
       record = await this.prisma.sepoliaHead.create({
         data: {
-          hash: '0xf9360b26367916a86f331223575185b48ad996dab3a9901200b21e753e3f3ae0',
-          height: 4484401,
+          hash: '0x9b99b712ea74b180d837db052469f0d96c71097d10d560bbdf29e291d753988f',
+          height: 4655600,
           asset: TEST_USDC_CONTRACT_ADDRESS,
         },
       });

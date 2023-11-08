@@ -20,14 +20,6 @@ variable "node_instance_type" {
   default = "t3.small"
 }
 
-variable "api_token" {
-  default = "test"
-}
-
-variable "bridge_address" {
-  default = "4446bf78457d7b256f16b645fa0a3d4212c32b493de90ad920521f89808d022a"
-}
-
 variable "incoming_view_key" {
   default = "a72c04ddb2cbe87f1f4fe1eee6b7cac64a43316285de48f793c238bbb0793707"
 }

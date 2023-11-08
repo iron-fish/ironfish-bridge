@@ -172,6 +172,22 @@ export class BridgeController {
     return { hash: head };
   }
 
+  @UseGuards(ApiKeyGuard)
+  @Get('refresh')
+  async refresh(): Promise<void> {
+    await this.graphileWorkerService.addJob(
+      GraphileWorkerPattern.REFRESH_WIRON_TRANSFERS,
+      {},
+      { jobKey: 'refresh_wiron_transfers' },
+    );
+
+    await this.graphileWorkerService.addJob(
+      GraphileWorkerPattern.REFRESH_TEST_USDC_TRANSFERS,
+      {},
+      { jobKey: 'refresh_test_usdc_transfers' },
+    );
+  }
+
   @Get('address')
   getAddress(): { address: string } {
     const address = this.config.get<string>('IRONFISH_BRIDGE_ADDRESS');
