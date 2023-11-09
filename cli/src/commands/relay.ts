@@ -4,6 +4,7 @@
 import { Asset, isValidPublicAddress } from '@ironfish/rust-nodejs'
 import {
   Assert,
+  BufferUtils,
   GetTransactionStreamResponse,
   Meter,
   PromiseUtils,
@@ -201,7 +202,7 @@ export default class BridgeRelay extends IronfishCommand {
 
         if (note.sender === bridgeAddress) {
           const requestId = Number(
-            Buffer.from(note.memo, 'hex').toString('utf8'),
+            BufferUtils.toHuman(Buffer.from(note.memo, 'hex')),
           )
 
           if (isNaN(requestId)) {
