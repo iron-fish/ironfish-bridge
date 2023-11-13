@@ -12,7 +12,6 @@ import {
   RpcClient,
   TimeUtils,
 } from '@ironfish/sdk'
-import { BurnDescription } from '@ironfish/sdk/src/primitives/burnDescription'
 import { Flags } from '@oclif/core'
 import { isAddress } from 'web3-validator'
 import { BridgeApi } from '../bridgeApi'
@@ -411,37 +410,33 @@ export default class BridgeRelay extends IronfishCommand {
       availableBalances.set(balance.assetId, BigInt(balance.available))
     }
 
-    const burnDescriptions: Map<string, BurnDescription> = new Map()
+    const burnAmounts: Map<string, bigint> = new Map()
 
     for (const request of nextBurnRequests) {
       const assetId = request.asset
 
       const availableBalance = availableBalances.get(assetId) ?? 0n
 
-      const burnDescription = burnDescriptions.get(assetId) ?? {
-        assetId: Buffer.from(assetId, 'hex'),
-        value: 0n,
-      }
+      const burnAmount = burnAmounts.get(assetId) ?? 0n
 
-      if (burnDescription.value + BigInt(request.amount) > availableBalance) {
+      if (burnAmount + BigInt(request.amount) > availableBalance) {
         continue
       }
 
-      burnDescription.value += BigInt(request.amount)
-      burnDescriptions.set(assetId, burnDescription)
+      burnAmounts.set(assetId, burnAmount + BigInt(request.amount))
       pendingRequests.push(request)
     }
 
-    if (burnDescriptions.size === 0) {
+    if (burnAmounts.size === 0) {
       this.log('Available balances too low to burn bridged assets')
       return
     }
 
     const burns = []
-    for (const burn of burnDescriptions.values()) {
+    for (const [assetId, burnAmount] of burnAmounts.entries()) {
       burns.push({
-        assetId: burn.assetId.toString('hex'),
-        value: burn.value.toString(),
+        assetId,
+        value: burnAmount.toString(),
       })
     }
 
