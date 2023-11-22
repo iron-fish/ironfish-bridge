@@ -26,3 +26,9 @@ In `ironfish-bridge/cli` directory:
 ```bash
 $ yarn link "@ironfish/sdk"
 ```
+
+### Docker
+
+Run `scripts/build-docker.sh` to build the Docker image
+
+To build a Docker image that depends on local changes in the `ironfish` repo, run the steps in the section above before running the build script.
