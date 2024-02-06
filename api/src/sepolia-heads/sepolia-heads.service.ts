@@ -4,9 +4,9 @@
 import { Injectable } from '@nestjs/common';
 import { SepoliaHead } from '@prisma/client';
 import {
-  TEST_USDC_CONTRACT_ADDRESS,
+  ERC20_CONTRACT_ADDRESS,
   WIRON_CONTRACT_ADDRESS,
-} from '../common/constants';
+} from '../../../constants';
 import { PrismaService } from '../prisma/prisma.service';
 import { BasePrismaClient } from '../prisma/types/base-prisma-client';
 
@@ -56,7 +56,7 @@ export class SepoliaHeadsService {
   async testUsdcHead(): Promise<SepoliaHead> {
     let record = await this.prisma.sepoliaHead.findFirst({
       where: {
-        asset: TEST_USDC_CONTRACT_ADDRESS,
+        asset: ERC20_CONTRACT_ADDRESS,
       },
     });
     if (!record) {
@@ -64,7 +64,7 @@ export class SepoliaHeadsService {
         data: {
           hash: '0xf9360b26367916a86f331223575185b48ad996dab3a9901200b21e753e3f3ae0',
           height: 4484401,
-          asset: TEST_USDC_CONTRACT_ADDRESS,
+          asset: ERC20_CONTRACT_ADDRESS,
         },
       });
     }
@@ -80,14 +80,14 @@ export class SepoliaHeadsService {
       create: {
         hash,
         height,
-        asset: TEST_USDC_CONTRACT_ADDRESS,
+        asset: ERC20_CONTRACT_ADDRESS,
       },
       update: {
         hash,
         height,
       },
       where: {
-        asset: TEST_USDC_CONTRACT_ADDRESS,
+        asset: ERC20_CONTRACT_ADDRESS,
       },
     });
   }

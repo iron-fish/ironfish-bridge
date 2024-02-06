@@ -13,9 +13,9 @@ import {
 } from '@nestjs/common';
 import { BridgeRequestStatus, FailureReason } from '@prisma/client';
 import assert from 'assert';
+import { SupportedAssets } from '../../../constants';
 import { ApiConfigService } from '../api-config/api-config.service';
 import { ApiKeyGuard } from '../auth/guards/api-key.guard';
-import { SupportedAssets } from '../common/constants';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
 import { MintWIronOptions } from '../wiron/interfaces/mint-wiron-options';

@@ -2,8 +2,8 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at https://mozilla.org/MPL/2.0/. */
 import { BridgeRequestStatus, Chain } from '@prisma/client';
+import { IRON_ASSET_ID } from '../../../constants';
 import { BridgeDataDTO } from '../bridge/types/dto';
-import { IRON_ASSET_ID } from '../common/constants';
 
 export const bridgeRequestDTO = (options: {
   destination_address?: string;

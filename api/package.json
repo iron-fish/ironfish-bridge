@@ -6,7 +6,7 @@
   "author": "Iron Fish <contact@ironfish.network> (https://ironfish.network)",
   "repository": "iron-fish/ironfish",
   "license": "MPL-2.0",
-  "homepage": "https://github.com/iron-fish/ironfish-bridge-api",
+  "homepage": "https://github.com/iron-fish/ironfish-bridge",
   "engines": {
     "node": "18.x"
   },

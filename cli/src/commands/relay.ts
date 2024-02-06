@@ -14,15 +14,14 @@ import {
 } from '@ironfish/sdk'
 import { Flags } from '@oclif/core'
 import { isAddress } from 'web3-validator'
+import { IRON_FISH_ASSET_ID } from '../../../constants'
 import { BridgeApi } from '../bridgeApi'
 import { IronfishCommand } from '../command'
 import { RemoteFlags } from '../flags'
 
 const MAX_OUTPUTS_PER_TRANSACTION = 10
 const SEND_TRANSACTIONS_INTERVAL_MS = 1000 * 60 * 2
-const OWNED_ASSET_IDS = new Set([
-  '3723c40e1c8a07f269facfae53453545600a02a1431cd1e03935d1e0256a003a',
-])
+const OWNED_ASSET_IDS = new Set([IRON_FISH_ASSET_ID])
 
 export default class BridgeRelay extends IronfishCommand {
   static description = `Relay Iron Fish transactions to the Iron Fish <=> Sepolia bridge API`

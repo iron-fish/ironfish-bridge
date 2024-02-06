@@ -5,14 +5,14 @@ import { Controller, UseFilters } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { BridgeRequestStatus, Chain, FailureReason } from '@prisma/client';
 import { ethers } from 'ethers';
-import { ApiConfigService } from '../api-config/api-config.service';
-import { BridgeService } from '../bridge/bridge.service';
 import {
-  IF_TEST_USDC_ASSET_ID,
+  ERC20_CONTRACT_ADDRESS,
+  IRON_FISH_ASSET_ID,
   SEPOLIA_BLOCK_TIME_MS,
   SEPOLIA_EXPLORER_URL,
-  TEST_USDC_CONTRACT_ADDRESS,
-} from '../common/constants';
+} from '../../../constants';
+import { ApiConfigService } from '../api-config/api-config.service';
+import { BridgeService } from '../bridge/bridge.service';
 import { TestUSDC, TestUSDC__factory } from '../contracts';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';
@@ -179,7 +179,7 @@ export class TestUsdcJobsController {
         source_address: event.args[0],
         destination_address: destinationAddress,
         amount: event.args[2].toString(),
-        asset: IF_TEST_USDC_ASSET_ID,
+        asset: IRON_FISH_ASSET_ID,
         source_chain: Chain.ETHEREUM,
         destination_chain: Chain.IRONFISH,
         source_transaction: event.transactionHash,
@@ -291,10 +291,7 @@ export class TestUsdcJobsController {
     );
     const provider = new ethers.InfuraProvider('sepolia');
     const wallet = new ethers.Wallet(testUsdcDeployerPrivateKey, provider);
-    const contract = TestUSDC__factory.connect(
-      TEST_USDC_CONTRACT_ADDRESS,
-      wallet,
-    );
+    const contract = TestUSDC__factory.connect(ERC20_CONTRACT_ADDRESS, wallet);
     return { provider, contract };
   }
 }

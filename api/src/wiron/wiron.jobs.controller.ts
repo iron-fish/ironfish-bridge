@@ -5,13 +5,13 @@ import { Controller, UseFilters } from '@nestjs/common';
 import { MessagePattern } from '@nestjs/microservices';
 import { BridgeRequestStatus, Chain, FailureReason } from '@prisma/client';
 import { ethers } from 'ethers';
-import { ApiConfigService } from '../api-config/api-config.service';
-import { BridgeService } from '../bridge/bridge.service';
 import {
   SEPOLIA_BLOCK_TIME_MS,
   SEPOLIA_EXPLORER_URL,
   WIRON_CONTRACT_ADDRESS,
-} from '../common/constants';
+} from '../../../constants';
+import { ApiConfigService } from '../api-config/api-config.service';
+import { BridgeService } from '../bridge/bridge.service';
 import { WIron, WIron__factory } from '../contracts';
 import { GraphileWorkerPattern } from '../graphile-worker/enums/graphile-worker-pattern';
 import { GraphileWorkerService } from '../graphile-worker/graphile-worker.service';

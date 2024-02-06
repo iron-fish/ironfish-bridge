@@ -10,8 +10,8 @@ import {
   TransactionReceipt,
 } from 'ethers';
 import { mock } from 'jest-mock-extended';
+import { IRON_FISH_ASSET_ID } from '../../../constants';
 import { BridgeService } from '../bridge/bridge.service';
-import { IF_TEST_USDC_ASSET_ID } from '../common/constants';
 import { TestUSDC } from '../contracts';
 import { TypedContractEvent, TypedEventLog } from '../contracts/common';
 import { TransferWithMetadataEvent } from '../contracts/WIron';
@@ -132,7 +132,7 @@ describe('TestUsdcJobsController', () => {
           source_address: event.args[0],
           destination_address: destinationAddress,
           amount: event.args[2].toString(),
-          asset: IF_TEST_USDC_ASSET_ID,
+          asset: IRON_FISH_ASSET_ID,
           source_chain: Chain.ETHEREUM,
           destination_chain: Chain.IRONFISH,
           source_transaction: event.transactionHash,

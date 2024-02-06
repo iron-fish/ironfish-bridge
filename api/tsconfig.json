@@ -7,11 +7,7 @@
     "experimentalDecorators": true,
     "forceConsistentCasingInFileNames": true,
     "incremental": true,
-    "lib": [
-      "dom",
-      "dom.iterable",
-      "ES2020"
-    ],
+    "lib": ["dom", "dom.iterable", "ES2020"],
     "module": "commonjs",
     "moduleResolution": "node",
     "outDir": "build",
@@ -23,12 +19,6 @@
     "target": "ES2020",
     "tsBuildInfoFile": "./build/tsconfig.tsbuildinfo"
   },
-  "include": [
-    "src"
-  ],
-  "exclude": [
-    "build",
-    "node_modules"
-  ],
+  "include": ["src", "../constants.ts"],
+  "exclude": ["build", "node_modules"]
 }
-

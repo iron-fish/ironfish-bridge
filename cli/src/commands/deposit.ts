@@ -11,15 +11,16 @@ import {
 import { CliUx, Flags } from '@oclif/core'
 import inquirer from 'inquirer'
 import { isAddress } from 'web3-validator'
+import { IRON_FISH_ASSET_ID } from '../../../constants'
 import { IronfishCommand } from '../command'
 import { IronFlag, RemoteFlags } from '../flags'
 
 const DEFAULT_BRIDGE_ADDRESS =
   '1d1a1fb9fafd7de32c7f02115207d6fe9df1272f5b4bedbbfa1330eba88c5ce2'
 
-const IF_USDC = {
-  id: '3723c40e1c8a07f269facfae53453545600a02a1431cd1e03935d1e0256a003a',
-  name: 'if.USDC',
+const WRAPPED_ERC20 = {
+  id: IRON_FISH_ASSET_ID,
+  name: 'wERC20',
 }
 
 const IRON = {
@@ -120,7 +121,7 @@ export class Deposit extends IronfishCommand {
           type: 'list',
           choices: [
             { value: IRON, name: IRON.name },
-            { value: IF_USDC, name: IF_USDC.name },
+            { value: WRAPPED_ERC20, name: WRAPPED_ERC20.name },
           ],
         },
       ])

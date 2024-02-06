@@ -10,8 +10,8 @@ import {
   TransactionReceipt,
 } from 'ethers';
 import { mock } from 'jest-mock-extended';
+import { WIRON_CONTRACT_ADDRESS } from '../../../constants';
 import { BridgeService } from '../bridge/bridge.service';
-import { WIRON_CONTRACT_ADDRESS } from '../common/constants';
 import { WIron, WIron__factory } from '../contracts';
 import { TypedContractEvent, TypedEventLog } from '../contracts/common';
 import { TransferWithMetadataEvent } from '../contracts/WIron';
