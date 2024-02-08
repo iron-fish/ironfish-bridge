@@ -51,9 +51,9 @@
     "macos": {
       "identifier": "network.ironfish.bridge.cli"
     },
-    "commands": "./build/src/commands",
+    "commands": "./build/cli/src/commands",
     "hooks": {
-      "init": "./build/src/hooks/version"
+      "init": "./build/cli/src/hooks/version"
     },
     "plugins": [
       "@oclif/plugin-help",
